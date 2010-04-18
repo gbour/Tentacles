@@ -1,4 +1,4 @@
 
-from database import SQLiteDatabase
-from table import Table
-from fields import *
+from database import SQLiteDatabase as Database
+from table    import Table
+#from fields import *
