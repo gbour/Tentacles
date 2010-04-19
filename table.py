@@ -1,13 +1,26 @@
 
 import sys, types, inspect
-from tentacles import Database
+from tentacles          import Database
+from tentacles.fields   import Field
 #from tentacles.fields import Field, FieldDescription, ReferenceSet
 
 class MetaTable(type):
+	def __new__(cls, name, bases, dct):
+		fields = {}
+		
+		for oname, obj in dct.items():
+			if isinstance(obj, Field):
+				fields[oname] = obj
+				del dct[oname]
+		
+		dct['__fields__'] = fields
+		klass = type.__new__(cls, name, bases, dct)
+		return klass
+	
 	def __init__(cls, name, bases, dct):
-		super(MetaTable, cls).__init__(name, bases, dct)
+		type.__init__(name, bases, dct)
 
-		if cls.__name__ == 'Table':
+		if name == 'Table':
 			return
 
 		if cls.__table_name__ is None:
@@ -29,6 +42,7 @@ class Table(object):
 
 	@classmethod
 	def __inherit__(cls, database):
+		print cls.__name__
 		modname = "tentacles.backends.%s" % database.uri.scheme
 		exec "import %s" % modname
 		backend = getattr(sys.modules[modname], 'Table')
@@ -37,11 +51,16 @@ class Table(object):
 			if name.startswith('__') or hasattr(cls, name):
 				continue
 
-			print name, isinstance(obj, types.UnboundMethodType), isinstance(obj, types.MethodType), isinstance(obj, types.FunctionType), obj
-			if isinstance(obj, types.UnboundMethodType):
-				obj = obj.im_func #types.MethodType(obj.im_func, cls)
+			if isinstance(obj, types.MethodType):
+				if obj.im_self is not None:                        class method
+					obj = types.MethodType(obj.im_func, cls)
+				else:
+					obj = obj.im_func
 			
 			setattr(cls, name, obj)
+			
+		for fld in cls.__fields__.itervalues():
+		    fld.__inherit__(database)
 
 
 

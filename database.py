@@ -32,8 +32,8 @@ class Database(object):
 				obj = types.MethodType(obj.im_func, self)
 			setattr(self, name, obj)
 		
-		for table in self.__tables__.itervalues():
-			table.__inherit__(self)
+#		for table in self.__tables__.itervalues():
+#			table.__inherit__(self)
 
 		self.__class__.__instance__ = self
 		

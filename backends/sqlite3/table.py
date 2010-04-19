@@ -7,17 +7,14 @@ class Table(object):
 	def __init__(self, *args, **kwargs):
 		self.zz = 22
 
-	def a(self):
-		print 'Table::a', self.zz
-
 	@classmethod
 	def create(cls):
+		print cls
 		q = 'CREATE TABLE ' + cls.__table_name__ + ' ( \n'
+		for fld in cls.__fields__:
+		    print fld
 		print q
 
-	@staticmethod
-	def zob():
-		pass
 
 #		for fld in self.__fields__:
 #			q += " " + fld.sql_def()

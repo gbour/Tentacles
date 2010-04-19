@@ -1,70 +1,89 @@
 # -*- coding: utf8 -*-
 
 import inspect, types, sys
-import orm
 
-ORDER = 0
-class FieldDescription(object):
-    def __init__(self, klass, args, kwargs):
-        global ORDER 
-        self.order  = ORDER
-        ORDER += 1
-        
-        self.klass  = klass
-        self.args   = args
-        self.kwargs = kwargs
+
+#ORDER = 0
+#class FieldDescription(object):
+#    def __init__(self, klass, args, kwargs):
+#        global ORDER 
+#        self.order  = ORDER
+#        ORDER += 1
+#        
+#        self.klass  = klass
+#        self.args   = args
+#        self.kwargs = kwargs
 
 #class ReferenceDescription(FieldDescription):
         
 #        print dir(sys.modules['__main__'])
 #        print sys.modules.keys()
     
+
 class Field(object):
-    type = types.NoneType
-    isfield = True
+    @classmethod
+    def __inherit__(cls, database):
+		modname = "tentacles.backends.%s.fields" % database.uri.scheme
+		exec "import %s" % modname
+		backend = getattr(sys.modules[modname], cls.__name__)
 
-    def __new__(cls, *args, **kwargs):
-        # Table fields must be instanciated only after table is instanciated
-        # (so take the correct database value)
-        if 'database' not in kwargs:
-            if issubclass(cls, Reference):
-                 kwargs['remote'] = args[0]
-                 args = ()
-#                return ReferenceDescription(cls, args, kwargs)
-            return FieldDescription(cls, args, kwargs)
-            
-        inst = super(Field, cls).__new__(cls, *args, **kwargs)
-        db = kwargs['database']
-        modname = "orm.backends.%s" % db.uri.scheme
-        exec "from %s import *" % modname
+		for name, obj in inspect.getmembers(backend):
+			if name.startswith('__') or hasattr(cls, name):
+				continue
 
-        dbfield = getattr(sys.modules[modname], cls.__name__)
-#        print 'dbfield=', dbfield
+			if isinstance(obj, types.MethodType):
+				if obj.im_self is not None:                       # class method
+					obj = types.MethodType(obj.im_func, cls)
+				else:
+					obj = obj.im_func
+			
+			setattr(cls, name, obj)
 
-        for name, obj in inspect.getmembers(dbfield):
-            if name.startswith('__'):
-                continue
+#    type = types.NoneType
+#    isfield = True
 
-            if isinstance(obj, types.MethodType):
-                obj = types.MethodType(obj.im_func, inst)
+#    def __new__(cls, *args, **kwargs):
+#        # Table fields must be instanciated only after table is instanciated
+#        # (so take the correct database value)
+#        if 'database' not in kwargs:
+#            if issubclass(cls, Reference):
+#                 kwargs['remote'] = args[0]
+#                 args = ()
+##                return ReferenceDescription(cls, args, kwargs)
+#            return FieldDescription(cls, args, kwargs)
+#            
+#        inst = super(Field, cls).__new__(cls, *args, **kwargs)
+#        db = kwargs['database']
+#        modname = "orm.backends.%s" % db.uri.scheme
+#        exec "from %s import *" % modname
 
-            setattr(inst, name, obj)
+#        dbfield = getattr(sys.modules[modname], cls.__name__)
+##        print 'dbfield=', dbfield
 
-        return inst
+#        for name, obj in inspect.getmembers(dbfield):
+#            if name.startswith('__'):
+#                continue
 
-    def __init__(self, name=None, notnull=False, primary_key=False, database=None, order=-1, **kwargs):
-        self.name       = name
-        self.notnull    = notnull
-        self.pk         = primary_key
-        self.order      = order
-        self.unique     = False
-        
-        if 'default' in kwargs:
-            self.default   = kwargs['default']
-        if 'remote' in kwargs:
-            self.remote    = kwargs['remote']
-        if 'owner' in kwargs:
-            self.owner    = kwargs['owner']
+#            if isinstance(obj, types.MethodType):
+#                obj = types.MethodType(obj.im_func, inst)
+
+#            setattr(inst, name, obj)
+
+#        return inst
+
+#    def __init__(self, name=None, notnull=False, primary_key=False, database=None, order=-1, **kwargs):
+#        self.name       = name
+#        self.notnull    = notnull
+#        self.pk         = primary_key
+#        self.order      = order
+#        self.unique     = False
+#        
+#        if 'default' in kwargs:
+#            self.default   = kwargs['default']
+#        if 'remote' in kwargs:
+#            self.remote    = kwargs['remote']
+#        if 'owner' in kwargs:
+#            self.owner    = kwargs['owner']
 
 #        self.database   = database if database else orm.__DATABASE__
 #        
@@ -88,10 +107,12 @@ class Field(object):
 
 
 class Integer(Field):
-    type = int
+#    type = int
+    pass
 
 class String(Field):
-    type = unicode
+#    type = unicode
+    pass
 
 class Binary(Field):
     pass
