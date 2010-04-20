@@ -1,5 +1,6 @@
 import inspect, types, StringIO, sqlite3
-#from orm.fields import Field
+from tentacles.fields import Reference
+
 
 class Table(object):
 	sqlite3 = None
@@ -9,42 +10,50 @@ class Table(object):
 
 	@classmethod
 	def create(cls):
-		print cls
 		q = 'CREATE TABLE ' + cls.__table_name__ + ' ( \n'
 		for fld in cls.__fields__:
-		    print fld
-		print q
+			if fld.__hidden__:
+				continue
+			
+			q += " " + fld.sql_def()
 
+#			if issubclass(fld.__class__, Reference):
+#				q += ",\n"
+#				continue
 
-#		for fld in self.__fields__:
-#			q += " " + fld.sql_def()
-##			q += "  %s %s" % (fld.name, fld.sql_type)
-#			if fld.pk:
-#			    q += " PRIMARY KEY"
-#			if fld.unique:
-#			    q += " UNIQUE"
-#			if fld.notnull:
-#			    q += " NOT NULL"
-#			if hasattr(fld, 'default'):
-#			    q += " DEFAULT"
-#			    if fld.default is None:
-#			        q += " NULL"
-#			    else:
-#			        q += " " + fld.sql_protect(fld.default)
-#			    
-#			    
-#			q += ",\n"
+			if len(cls.__pk__) == 1 and fld.pk:
+				q += " PRIMARY KEY"
+			if fld.unique:
+				q += " UNIQUE"
+			if fld.notnull:
+				q += " NOT NULL"
+			if hasattr(fld, 'default'):
+				q += " DEFAULT"
+				if fld.default is None:
+					q += " NULL"
+				else:
+					q += " " + fld.sql_protect(fld.default)
 
-#		q = q[:-2] + '\n)'
-#		return q
-#		
-#	def sql_get(self):
-#	    q = 'SELECT * FROM ' + self.__class__.__name__
-#	    res = self.db.execute(q)
-#	    print res
-#	    
-#	def sql_create(self):
-#	    q = self.sql_def()
-#	    print q
-#	    self.db.execute(q)
+			q += ",\n"
+
+		if len(cls.__pk__) > 1:
+			q += "\n PRIMARY KEY ("
+			for pk in cls.__pk__:
+				q += pk.name + ','
+			q = q[:-1] + '),\n'
+			
+		if hasattr(cls, '__refs__'):
+		    for table, refs in cls.__refs__.iteritems():
+		        if len(refs) < 2:
+		            continue
+		        
+		        q += ' FOREIGN KEY ('
+		        for local, remote in refs:
+		            q += "%s, " % local.name
+		        q = q[:-2] + ') REFERENCES %s (' % table.__table_name__
+		        for local, remote in refs:
+		            q += "%s, " % remote.name
+		        q = q[:-2] + '),\n'
+		q = q[:-2] + '\n)'
+		return q
 
