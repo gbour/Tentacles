@@ -39,6 +39,7 @@ class Field(object):
 		self.notnull     = notnull
 		self.pk          = primary_key
 		self.unique      = False
+		self.default     = None
 		self.__hidden__  = False
 		
 		if 'default' in kwargs:
@@ -50,6 +51,8 @@ class Field(object):
 #		if 'owner' in kwargs:
 #			self.owner	= kwargs['owner']
 
+	def check(self, value):
+		pass
 
 class Integer(Field):
 #	type = int

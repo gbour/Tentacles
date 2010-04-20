@@ -11,7 +11,7 @@ class Table(object):
 	@classmethod
 	def create(cls):
 		q = 'CREATE TABLE ' + cls.__table_name__ + ' ( \n'
-		for fld in cls.__fields__:
+		for fld in cls.__fields__.itervalues():
 			if fld.__hidden__:
 				continue
 			
@@ -57,3 +57,46 @@ class Table(object):
 		q = q[:-2] + '\n)'
 		return q
 
+	def save(self):
+		if len(self.__changes__) == 0:
+			return
+
+		if self.__saved__:
+			q, values = self._update()
+		else:
+			q, values = self._insert()
+
+		self.__dict__['__saved__'] = True
+		self.__changes__.clear()
+#		self.__origin__.clear()
+		print q, values
+		print self.__origin__
+
+	def _insert(self):
+		values = []
+		q = 'INSERT INTO %s VALUES(' % self.__table_name__
+		for name, fld in self.__fields__.iteritems():
+			if fld.__hidden__:
+				continue
+
+			q += "?, "
+			values.append(getattr(self, name))
+		q = q[:-2] + ')'
+
+		return q, values
+
+	def _update(self):
+		values = []
+		q = 'UPDATE TABLE %s SET ' % self.__table_name__
+		for name, value in self.__changes__.iteritems():
+			q += "%s = ?, " % name
+			values.append(value)
+		q = q[:-2] + ' WHERE '
+
+		for pk in self.__pk__:
+			q += "%s = ? AND" % pk.name
+			values.append(self.__origin__[pk.name])
+			self.__origin__[pk.name] = value
+
+		q = q[:-4]
+		return q, values
