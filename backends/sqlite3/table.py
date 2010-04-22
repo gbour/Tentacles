@@ -1,4 +1,5 @@
 import inspect, types, StringIO, sqlite3
+from puzzle import Stream
 from tentacles.fields import Reference
 
 
@@ -74,16 +75,27 @@ class Table(object):
 
 	def _insert(self):
 		values = []
-		q = 'INSERT INTO %s VALUES(' % self.__table_name__
+		q = Stream('INSERT INTO ', self.__table_name__, ' VALUES(')
 		for name, fld in self.__fields__.iteritems():
 			if fld.__hidden__:
 				continue
 
-			q += "?, "
+			q.write('?', ', ')
 			values.append(getattr(self, name))
-		q = q[:-2] + ')'
+		print q
+		del q[-1]
+		q.write(')')
 
-		return q, values
+#		q = 'INSERT INTO %s VALUES(' % self.__table_name__
+#		for name, fld in self.__fields__.iteritems():
+#			if fld.__hidden__:
+#				continue
+
+#			q += "?, "
+#			values.append(getattr(self, name))
+#		q = q[:-2] + ')'
+
+		return q.tostring(), values
 
 	def _update(self):
 		values = []

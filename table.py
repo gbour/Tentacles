@@ -2,8 +2,7 @@
 import sys, types, inspect
 from odict import odict
 from tentacles          import Database
-from tentacles.fields   import Field, ReferenceSet
-#from tentacles.fields import Field, FieldDescription, ReferenceSet
+from tentacles.fields   import Field, Reference, ReferenceSet
 
 class MetaTable(type):
 	def __new__(cls, name, bases, dct):
@@ -21,13 +20,23 @@ class MetaTable(type):
 
 		fields.sort(lambda x, y: x[1].__order__ - y[1].__order__)
 		pk.sort(lambda x, y: x.__order__ - y.__order__)
+
 		dct['__fields__'] = fields
 		dct['__pk__']     = pk
 		klass = type.__new__(cls, name, bases, dct)
 
 		for fld in fields.itervalues():
-			print fld
 			fld.__owner__ = klass
+
+			if isinstance(fld, Reference):
+				ref = Reference(klass, reverse=True)
+				ref.__owner__ = fld
+				ref.name = "%s__%s" % (name, oname)
+				ref.remote_field = fld
+				fld.remote_field = ref
+
+				fld.remote.__fields__[ref.name] = ref
+
 		return klass
 	
 	def __init__(cls, name, bases, dct):

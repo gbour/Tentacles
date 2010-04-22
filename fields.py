@@ -54,28 +54,58 @@ class Field(object):
 	def check(self, value):
 		pass
 
+	def __str__(self):
+	    q = "%s(%s=%s)" % (self.__class__.__name__, self.name, self.default)
+	    if self.__hidden__:
+	        q = '#' + q
+	    return q
+	    
+	def __repr__(self):
+	    return self.__str__()
+
+
 class Integer(Field):
 #	type = int
 	pass
+
 
 class String(Field):
 #	type = unicode
 	pass
 
+
 class Binary(Field):
 	pass
-	
+
+
 class Boolean(Field):
 	pass
-	
+
+
 class Datetime(Field):
 	pass
 
+
 class Reference(Field):
-	def __init__(self, remote, **kwargs):
+	def __init__(self, remote, reverse=False, **kwargs):
 		super(Reference, self).__init__(**kwargs)
+
 		self.remote = remote
-	
+		self.reverse = reverse
+		if reverse:
+			self.__hidden__ = True
+		
+		self.remote_field = None
+
+	def __str__(self):
+	    q = "%s(%s=%s)" % (self.__class__.__name__, self.name, self.default)
+	    if self.reverse:
+	        q = '*' + q
+	    if self.__hidden__:
+	        q = '#' + q
+	    return q
+
+
 class ReferenceSet(Field):
 	def __init__(self, remote, *args, **kwargs):
 		super(ReferenceSet, self).__init__(*args, **kwargs)
