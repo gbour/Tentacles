@@ -1,4 +1,4 @@
-
+# -*- coding: utf8 -*-
 import sys, types, inspect
 from odict import odict
 from tentacles          import Database
@@ -29,13 +29,9 @@ class MetaTable(type):
 			fld.__owner__ = klass
 
 			if isinstance(fld, Reference):
-				ref = Reference(klass, reverse=True)
-				ref.__owner__ = fld
-				ref.name = "%s__%s" % (name, oname)
-				ref.remote_field = fld
-				fld.remote_field = ref
-
+				ref = Reference(klass, name=fld.fieldname, fieldname=fld.name, reverse=True, peer=fld)
 				fld.remote.__fields__[ref.name] = ref
+				fld.peer = ref
 
 		return klass
 	
@@ -105,7 +101,7 @@ class Table(object):
 				value = kw[name]
 
 			if value is None:
-				value = fld.default
+				value = fld.default()
 
 			self.__dict__[name] = None
 			setattr(self, name, value)
@@ -132,7 +128,28 @@ class Table(object):
 
 		fld = self.__fields__[key]
 		fld.check(value)	# raise exception if failed
-		self.__changes__[key] = value
+
+		if isinstance(fld, Reference):
+			if fld.reverse:
+				print '<', fld.name, value, self
+				value.__owner__ = self
+
+			else:
+				self.__changes__[key] = value
+
+				# remove old value
+				if getattr(self, key) is not None:
+					old = getattr(self, key)
+					lst = getattr(old, fld.peer.name)
+					lst.__remove__(self)
+
+				# get RelationList 
+				rellist = getattr(value, fld.peer.name)
+				rellist.__append__(self)
+
+		else:
+			self.__changes__[key] = value
+
 		self.__dict__[key]    = value
 
 
@@ -144,3 +161,7 @@ class Table(object):
 
 	def saved(self):
 		return self.__saved__
+
+	def __repr__(self):
+		return '%s(%s=%s)' % \
+			(self.__class__.__name__, self.__pk__[0].name, getattr(self, self.__pk__[0].name))
