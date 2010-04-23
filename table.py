@@ -23,6 +23,7 @@ class MetaTable(type):
 
 		dct['__fields__'] = fields
 		dct['__pk__']     = pk
+		dct['__references__'] = []
 		klass = type.__new__(cls, name, bases, dct)
 
 		for fld in fields.itervalues():
@@ -32,6 +33,9 @@ class MetaTable(type):
 				ref = Reference(klass, name=fld.fieldname, fieldname=fld.name, reverse=True, peer=fld)
 				fld.remote.__fields__[ref.name] = ref
 				fld.peer = ref
+				
+				klass.__references__.append(fld)
+				fld.remote.__references__.append(ref)
 
 		return klass
 	
@@ -131,7 +135,6 @@ class Table(object):
 
 		if isinstance(fld, Reference):
 			if fld.reverse:
-				print '<', fld.name, value, self
 				value.__owner__ = self
 
 			else:

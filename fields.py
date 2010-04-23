@@ -171,6 +171,7 @@ class ReferenceList(object):
 	def __append__(self, value):
 		self.__items__.append(value)
 		self.__added__.append(value)
+		self.__owner__.__changes__[self.__fld__.name] = self
 
 	def remove(self, value):
 		self.__remove__(value)
@@ -193,7 +194,13 @@ class ReferenceList(object):
 		return len(self.__items__)
 
 	def save(self):
-		pass
+		for itm in self.__added__:
+			itm.save()
+		del self.__added__[:]
+			
+		for itm in self.__removed__:
+			itm.save()
+		del self.__removed__[:]
 
 	def __unicode__(self):
 		return str(self.__items__)
@@ -203,4 +210,5 @@ class ReferenceList(object):
 
 	def __repr__(self):
 		return self.__unicode__()
+
 
