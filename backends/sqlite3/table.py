@@ -114,19 +114,22 @@ class Table(object):
 	def _update(self):
 		values = []
 		q = 'UPDATE TABLE %s SET ' % self.__table_name__
+
 		for name, value in self.__changes__.iteritems():
+			if isinstance(value, ReferenceList):
+				continue
+
 			q += "%s = ?, " % name
-			
+
 			if isinstance(self.__fields__[name], Reference):
 				value = getattr(value, value.__pk__[0].name)
 			values.append(value)
 		q = q[:-2] + ' WHERE '
 
-		print self.__table_name__, self.__pk__, self.__origin__
 		for pk in self.__pk__:
 			q += "%s = ? AND " % pk.name
 			values.append(self.__origin__[pk.name])
-			self.__origin__[pk.name] = value
+			self.__origin__[pk.name] = getattr(self, pk.name)
 
 		q = q[:-4]
 		return q, values

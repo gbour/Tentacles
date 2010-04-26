@@ -134,6 +134,7 @@ class Table(object):
 		fld.check(value)	# raise exception if failed
 
 		if isinstance(fld, Reference):
+			print 'PLOP', self, fld, fld.reverse
 			if fld.reverse:
 				value.__owner__ = self
 
