@@ -140,6 +140,8 @@ class ReferenceSet(Field):
 		
 		Database.register_reference(self)
 
+	def default(self):
+		return ReferenceList(self, self.remote)
 
 
 class ReferenceList(object):
