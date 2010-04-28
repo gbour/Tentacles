@@ -144,73 +144,73 @@ class ReferenceSet(Field):
 		return ReferenceList(self, self.remote)
 
 
-class ReferenceList(object):
-	def __init__(self, field, peer):
-		"""
-			remote   : remote fieldname
-		"""
-		self.__items__    = []
+#class ReferenceList(object):
+#	def __init__(self, field, peer):
+#		"""
+#			remote   : remote fieldname
+#		"""
+#		self.__items__    = []
 
-		# tracking changes
-		self.__added__    = []
-		self.__removed__  = []
+#		# tracking changes
+#		self.__added__    = []
+#		self.__removed__  = []
 
-		self.__owner__    = None
-		self.__fld__      = field
-		self.__peer__     = peer
+#		self.__owner__    = None
+#		self.__fld__      = field
+#		self.__peer__     = peer
 
-	def append(self, value):
-		"""Update internal sets
-		"""
-		self.__append__(value)
+#	def append(self, value):
+#		"""Update internal sets
+#		"""
+#		self.__append__(value)
 
-		# propagate
-		if value.__dict__[self.__peer__]:
-			getattr(value.__dict__[self.__peer__], self.__fld__.name).remove(value)
+#		# propagate
+#		if value.__dict__[self.__peer__]:
+#			getattr(value.__dict__[self.__peer__], self.__fld__.name).remove(value)
 
-		value.__dict__[self.__peer__] = self.__owner__
+#		value.__dict__[self.__peer__] = self.__owner__
 
-	def __append__(self, value):
-		self.__items__.append(value)
-		self.__added__.append(value)
-		self.__owner__.__changes__[self.__fld__.name] = self
+#	def __append__(self, value):
+#		self.__items__.append(value)
+#		self.__added__.append(value)
+#		self.__owner__.__changes__[self.__fld__.name] = self
 
-	def remove(self, value):
-		self.__remove__(value)
+#	def remove(self, value):
+#		self.__remove__(value)
 
-	def __remove__(self, value):
-		i = self.__items__.index(value)
-		self.__delitem__(i)
+#	def __remove__(self, value):
+#		i = self.__items__.index(value)
+#		self.__delitem__(i)
 
-	def __delitem__(self, idx):
-		"""Update internal sets
-		"""
-		value = self.__items__[idx]
-		del self.__items__[idx]
-		if value in self.__added__:
-			self.__added__.remove(value)
-		else:
-			self.__removed__.append(value)
+#	def __delitem__(self, idx):
+#		"""Update internal sets
+#		"""
+#		value = self.__items__[idx]
+#		del self.__items__[idx]
+#		if value in self.__added__:
+#			self.__added__.remove(value)
+#		else:
+#			self.__removed__.append(value)
 
-	def __len__(self):
-		return len(self.__items__)
+#	def __len__(self):
+#		return len(self.__items__)
 
-	def save(self):
-		for itm in self.__added__:
-			itm.save()
-		del self.__added__[:]
-			
-		for itm in self.__removed__:
-			itm.save()
-		del self.__removed__[:]
+#	def save(self):
+#		for itm in self.__added__:
+#			itm.save()
+#		del self.__added__[:]
+#			
+#		for itm in self.__removed__:
+#			itm.save()
+#		del self.__removed__[:]
 
-	def __unicode__(self):
-		return str(self.__items__)
+#	def __unicode__(self):
+#		return str(self.__items__)
 
-	def __str__(self):
-		return self.__unicode__()
+#	def __str__(self):
+#		return self.__unicode__()
 
-	def __repr__(self):
-		return self.__unicode__()
+#	def __repr__(self):
+#		return self.__unicode__()
 
 

@@ -42,6 +42,17 @@ class RefList(object):
 			self.__removed__.append(value)
 			self.__owner__.__changed__ = True
 
+		return value
+
+	def __len__(self):
+		return len(self.__items__)
+
+	def __str__(self):
+		return str(self.__items__)
+
+	def __repr__(self):
+		return self.__str()
+
 class o2m_RefList(RefList):
 	"""
 	"""
@@ -51,12 +62,14 @@ class o2m_RefList(RefList):
 			setattr(value, self.__target__[1], self.__owner__)
 
 	def remove(self, value):
-		self.__remove__(self, value)
+		self.__remove__(value)
 
 		setattr(value, self.__target__[1], None)
 
-	def delitem(self, i)
-		self.__delitem__(i)
+	def __delitem__(self, i):
+		value = super(o2m_RefList, self).__delitem__(i)
+
+		setattr(value, self.__target__[1], None)
 
 class m2m_RefList(RefList):
 	def append(self, value):
@@ -65,36 +78,14 @@ class m2m_RefList(RefList):
 			getattr(value, self.__target__[1]).__append__(self.__owner__)
 
 	def remove(self, value):
-		self.__remove__(self, value)
+		self.__remove__(value)
 
 		getattr(value, self.__target__[1]).__remove__(self.__owner__)
 
+	def __delitem__(self, i):
+		value = super(m2m_RefList, self).__delitem__(i)
 
-#	def remove(self, value):
-#		self.__remove__(value)
+		getattr(value, self.__target__[1]).__remove__(self.__owner__)
 
-
-
-
-#	def __len__(self):
-#		return len(self.__items__)
-
-#	def save(self):
-#		for itm in self.__added__:
-#			itm.save()
-#		del self.__added__[:]
-#			
-#		for itm in self.__removed__:
-#			itm.save()
-#		del self.__removed__[:]
-
-#	def __unicode__(self):
-#		return str(self.__items__)
-
-#	def __str__(self):
-#		return self.__unicode__()
-
-#	def __repr__(self):
-#		return self.__unicode__()
 
 
