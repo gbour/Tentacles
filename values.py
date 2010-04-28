@@ -3,7 +3,7 @@ class RefList(object):
 	def __init__(self, owner, name, target):
 		self.__owner__    = owner
 		self.__name__     = name
-		self.__target__   = target                 # object instance, fieldname
+		self.__target__   = target                 # (object instance, fieldname) tuple
 
 		self.__items__    = []
 
@@ -12,12 +12,17 @@ class RefList(object):
 		self.__removed__  = []
 
 	def __append__(self, value):
+		if value in self.__items__:
+			return False
+
 		self.__items__.append(value)
 		if value in self.__removed__:
 			self.__removed__.remove(value)
 		else:
 			self.__added__.append(value)
 			self.__owner__.__changed__ = True
+
+		return True
 
 	def __remove__(self, value):
 		self.__items__.remove(value) # raise ValueError if not found
@@ -41,33 +46,28 @@ class o2m_RefList(RefList):
 	"""
 	"""
 	def append(self, value):
-		self.__append__(value)
+		if self.__append__(value):
+			# propagate 
+			setattr(value, self.__target__[1], self.__owner__)
 
-		# propagate 
-		setattr(value, self.__target__[1], self.__owner__)
+	def remove(self, value):
+		self.__remove__(self, value)
+
+		setattr(value, self.__target__[1], None)
+
+	def delitem(self, i)
+		self.__delitem__(i)
 
 class m2m_RefList(RefList):
 	def append(self, value):
-		self.__append__(value)
+		if self.__append__(value):
+			# propagate
+			getattr(value, self.__target__[1]).__append__(self.__owner__)
 
-		# propagate
-		getattr(value, self.__target__[1]).__append__(self.__owner__)
+	def remove(self, value):
+		self.__remove__(self, value)
 
-
-#print '>>',z
-#z = One2Many_RefList(None, None, None)
-	
-#		
-#	def append(self, value):
-#		"""Update internal sets
-#		"""
-#		self.__append__(value)
-
-#		# propagate
-#		if value.__dict__[self.__peer__]:
-#			getattr(value.__dict__[self.__peer__], self.__fld__.name).remove(value)
-
-#		value.__dict__[self.__peer__] = self.__owner__
+		getattr(value, self.__target__[1]).__remove__(self.__owner__)
 
 
 #	def remove(self, value):
