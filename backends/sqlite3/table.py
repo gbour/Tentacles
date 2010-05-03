@@ -1,5 +1,5 @@
 import inspect, types, StringIO, sqlite3
-from tentacles.fields import Reference, ReferenceList
+from tentacles.fields import Reference
 
 
 class Table(object):
