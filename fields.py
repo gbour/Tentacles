@@ -1,23 +1,32 @@
 # -*- coding: utf8 -*-
 
 import inspect, types, sys
-from tentacles import Database
+from tentacles import Storage
 
 ORDER = 0
 
 class MetaField(type):
 	def __new__(cls, name, bases, dct):
+		"""
+			As class attributes are stored in a dictionary, python loose attributes
+			definition order.
+
+			We set __order__ attribute to each Object Field to keep this information
+		"""
 		global ORDER
 		dct['__order__'] = ORDER
 		ORDER += 1
 
 		return type.__new__(cls, name, bases, dct)
 
+
 class Field(object):
 	__metaclass__ = MetaField
 
 	@classmethod
 	def __inherit__(cls, database):
+		"""Inherit attributes and methods from database backend
+		"""
 		modname = "tentacles.backends.%s.fields" % database.uri.scheme
 		exec "import %s" % modname
 		backend = getattr(sys.modules[modname], cls.__name__)
@@ -34,14 +43,20 @@ class Field(object):
 			
 			setattr(cls, name, obj)
 
-	def __init__(self, name=None, notnull=False, primary_key=False, **kwargs):
+	def __init__(self, name=None, none=False, pk=False, **kwargs):
+		"""Instanciate a new Field
+
+			. name   : field name
+			. notnull: None value allowed
+		"""
+		self.__owner__   = False
 		self.name        = name
-		self.notnull     = notnull
-		self.pk          = primary_key
+		self.none        = none
+		self.pk          = pk
 		self.unique      = False
 		self.__default__ = None
 		self.__hidden__  = False
-		
+
 		if 'default' in kwargs:
 			self.__default__   = kwargs['default']
 		if 'unique' in kwargs:
@@ -55,7 +70,7 @@ class Field(object):
 		pass
 
 	def __str__(self):
-	    q = "%s(%s=%s)" % (self.__class__.__name__, self.name, self.__default__)
+	    q = "%s(%s)" % (self.__class__.__name__, self.name)
 	    if self.__hidden__:
 	        q = '#' + q
 	    return q
@@ -91,7 +106,7 @@ class Datetime(Field):
 
 
 class Reference(Field):
-	def __init__(self, remote, name=None):#, fieldname=None, reverse=False, peer=None, **kwargs):
+	def __init__(self, remote, name=None, sibling=None, **kwargs):#, fieldname=None, reverse=False, peer=None, **kwargs):
 		"""
 			A Reference is a many2one relation, defined for an Object with following arguments:
 				. remote (object, the ``one" part of the relation)
@@ -100,7 +115,8 @@ class Reference(Field):
 			When the Object itself (field owner) is defined (MetaClass called),
 			following extra fields are setted:
 				. __owner__ : field class owner
-				. __name__  : field name
+				. name      : field name
+
 
 			remote    : remote klass
 			name      : local field name
@@ -110,8 +126,9 @@ class Reference(Field):
 		"""
 		super(Reference, self).__init__(**kwargs)
 
-		self.remote    = remote
-		self.name      = name
+		self.remote    = (remote, name)
+		self.sibling   = sibling
+#		self.name      = name
 		
 #		self.fieldname = fieldname
 #		self.reverse   = reverse
@@ -130,11 +147,11 @@ class Reference(Field):
 
 
 #	def __str__(self):
-#	    q = "%s(%s=%s)" % (self.__class__.__name__, self.name, self.__default__)
-#	    if self.reverse:
-#	        q = '*' + q
-#	    if self.__hidden__:
-#	        q = '#' + q
+#	    q = "%s(%s)" % (self.__class__.__name__, self.name)
+##	    if self.reverse:
+##	        q = '*' + q
+##	    if self.__hidden__:
+##	        q = '#' + q
 #	    return q
 
 	def default(self):
@@ -156,7 +173,7 @@ class ReferenceSet(Field):
 		
 		self.remote     = remote
 		
-		Database.register_reference(self)
+#		Database.register_reference(self)
 
 	def default(self):
 		return None #return ReferenceList(self, self.remote)
