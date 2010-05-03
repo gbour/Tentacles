@@ -1,67 +1,107 @@
 # -*- coding: utf8 -*-
 import sys, types, inspect
 from odict import odict
-from tentacles          import Database
+from tentacles          import Storage
 from tentacles.fields   import Field, Reference, ReferenceSet
 
-class MetaTable(type):
+class MetaObject(type):
 	def __new__(cls, name, bases, dct):
 		fields = odict()
 		pk     = []
-		
-		for oname, obj in dct.items():
-			if isinstance(obj, Field):
-				obj.name = oname
-				if obj.pk:
-					pk.append(obj)
 
-				fields[oname] = obj
-				del dct[oname]
+		if not '__stor_name__' in dct:
+			dct['__stor_name__'] = name.lower()
+		
+		for fname, fld in dct.items():
+			if isinstance(fld, Field):
+				fld.name = fname
+				if fld.pk:
+					pk.append(fld)
+
+				fields[fname] = fld
+				del dct[fname]
 
 		fields.sort(lambda x, y: x[1].__order__ - y[1].__order__)
 		pk.sort(lambda x, y: x.__order__ - y.__order__)
 
 		dct['__fields__'] = fields
 		dct['__pk__']     = pk
-		dct['__references__'] = []
+		dct['__refs__']   = []
+
 		klass = type.__new__(cls, name, bases, dct)
 
 		for fld in fields.itervalues():
 			fld.__owner__ = klass
 
 			if isinstance(fld, Reference):
-				ref = Reference(klass, name=fld.fieldname, fieldname=fld.name, reverse=True, peer=fld)
-				fld.remote.__fields__[ref.name] = ref
-				fld.peer = ref
-				
-				klass.__references__.append(fld)
-				fld.remote.__references__.append(ref)
+				# create sibling reference
+				siblname = fld.remote[1]
+				if not siblname:
+					siblname   = "%s__%s" % (name, fld.name)
+					fld.remote = (fld.remote[0], siblname)
 
+				ref = ReferenceSet(klass, name=fld.name, sibling=fld, reverse=True) #fieldname=fld.name, reverse=True, peer=fld)
+				ref.name = siblname
+
+				fld.remote[0].__fields__[siblname] = ref
+				fld.remote[0].__refs__.append(ref)
+
+				fld.sibling = ref
+#				fld.remote.__fields__[ref.name] = ref
+#				fld.peer = ref
+				
+				klass.__refs__.append(fld)
+#				fld.remote.__references__.append(ref)
+			elif isinstance(fld, ReferenceSet):
+				klass.__refs__.append(fld)
+
+		if not klass.__name__ == 'Object':
+			Storage.register(klass)
 		return klass
 	
-	def __init__(cls, name, bases, dct):
-		type.__init__(name, bases, dct)
+#	def __init__(cls, name, bases, dct):
+#		type.__init__(name, bases, dct)
 
-		if name == 'Table':
-			return
+#		if name == 'Object':
+#			return
 
-		if cls.__table_name__ is None:
-			cls.__table_name__ = name.lower()
+#		if cls.__table_name__ is None:
+#			cls.__table_name__ = name.lower()
 
-		Database.register_table(cls)
+#		Database.register_table(cls)
 
+#Table
+#  (C) __table_name__ : (str)   stored table name (default: table.__name__.lower())
+#  (C) __fields__     : (odict) table fields
+#  (C) __pk__         : (list)  primary key fields
 
-class Table(object):
-	__metaclass__   = MetaTable
-	__table_name__  = None
+#  (I) fld1, fld2     : field values
+#  (I) __changes__    : (dict) fields that have changed values
+#  (I) __saved__      : (bool) did this instance has been saved once at least
+#  (I) __changed__    : (bool) true when a change append in the object (field value, list content
+#  (I) __origin__     : (dict) primary keys previous values
+#     if we changed a primary key value, we must know the original value to save
+#     change (UPDATE action)
+  
+
+class Object(object):
+	__metaclass__   = MetaObject
+	# stored table name
+	__name__        = None
+	# ordered list of object fields
+	__fields__      = odict()
+	# list of primary key fields
 	__pk__          = []
-	__origin__      = {}
+	# list of references fields
+	__refs__        = []
 
 	@classmethod
 	def __inherit__(cls, database):
+		"""Inherit attributes and methods from database backend
+		"""
 		modname = "tentacles.backends.%s" % database.uri.scheme
 		exec "import %s" % modname
-		backend = getattr(sys.modules[modname], 'Table')
+		backend = getattr(sys.modules[modname], 'Object')
 
 		for name, obj in inspect.getmembers(backend):
 			if name.startswith('__') or hasattr(cls, name):
@@ -80,14 +120,16 @@ class Table(object):
 
 	def __init__(self, *args, **kw):
 		# __changes__ track changed fields 
-		#		key   = fieldname
+		#   key   = fieldname (str)
 		#   value = 1st old value after last save
 		self.__dict__['__changes__'] = {}
 		self.__dict__['__saved__']   = False
+		# True is at least a value has been modified
+		self.__dict__['__changed__'] = False
 
 		#
 		# each single attribute is replaced either by argument value, or by 
-		#		its type default value.
+		#   its type default value.
 		# for example, the field name=String(default='john doe') is replaced 
 		#   by 'john doe' string
 		#
@@ -134,7 +176,7 @@ class Table(object):
 		fld.check(value)	# raise exception if failed
 
 		if isinstance(fld, Reference):
-			print 'PLOP', self, fld, fld.reverse
+#			print 'PLOP', self, fld, fld.reverse
 			if fld.reverse:
 				value.__owner__ = self
 

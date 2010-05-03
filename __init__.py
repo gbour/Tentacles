@@ -1,7 +1,7 @@
 
 __DATABASE__ = None
 
-from database import Database
-from table    import Table
+from database import Storage
+from table    import Object
 
 import backends

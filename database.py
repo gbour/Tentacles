@@ -10,9 +10,9 @@ class Uri(object):
 		for k, v in m.groupdict().iteritems():
 			setattr(self, k, v)
 
-class Database(object):
+class Storage(object):
 	__instance__  = None
-	__tables__    = []
+	__objects__   = []
 	__refs__      = []
 	__context__   = None
 
@@ -24,10 +24,10 @@ class Database(object):
 			raise Exception("Unknown '%s' database backend" % self.uri.scheme)
 		
 		exec "from %s import *" % modname
-		if not hasattr(sys.modules[modname], 'Database'):
-			raise Exception("Unknown '%s' database backend" % self.uri.scheme)
+		if not hasattr(sys.modules[modname], 'Storage'):
+			raise Exception("Unknown '%s' storage backend" % self.uri.scheme)
 
-		backend = getattr(sys.modules[modname], 'Database')
+		backend = getattr(sys.modules[modname], 'Storage')
 		for name, obj in inspect.getmembers(backend):
 			if name.startswith('__') or hasattr(self, name):
 				continue
@@ -42,8 +42,8 @@ class Database(object):
 	@classmethod
 	def set_context(cls, name):
 		@classmethod
-		def _set_context(cls, table):
-		    table.__table_name__ = '%s_%s' % (name, table.__table_name__)
+		def _set_context(cls, obj):
+		    obj.__stor_name__ = '%s_%s' % (name, obj.__stor_name__)
 		
 		if isinstance(name, types.FunctionType):
 		    cls.__context__ = types.MethodType(name, cls, cls)
@@ -51,24 +51,24 @@ class Database(object):
 		    cls.__context__ = _set_context
 	
 	@classmethod
-	def register_table(cls, table):
-		"""Register tables for this database.
+	def register(cls, obj):
+		"""Register objects for this storage.
 
-			Tables register once themselves at definition time (metaclass.__init__)
+			Objects register once themselves at definition time (metaclass.__init__)
 		"""
 		if cls.__context__:
-		    cls.__context__(table)
-		cls.__tables__.append(table)
+		    cls.__context__(obj)
+		cls.__objects__.append(obj)
 
 		if cls.__instance__:
-			table.__inherit__(cls.__instance__)
+			obj.__inherit__(cls.__instance__)
 
 		# create extra tables
 		# NOTE: delete cls.__refs__ to prevent infinite loop
-		refs = cls.__refs__
-		cls.__refs__ = []
-		for ref in refs:
-			cls.create_ref_table(ref)
+#		refs = cls.__refs__
+#		cls.__refs__ = []
+#		for ref in refs:
+#			cls.create_ref_table(ref)
 
 	@classmethod
 	def register_reference(cls, ref):
