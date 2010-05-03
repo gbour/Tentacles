@@ -91,8 +91,17 @@ class Datetime(Field):
 
 
 class Reference(Field):
-	def __init__(self, remote, name=None, fieldname=None, reverse=False, peer=None, **kwargs):
+	def __init__(self, remote, name=None):#, fieldname=None, reverse=False, peer=None, **kwargs):
 		"""
+			A Reference is a many2one relation, defined for an Object with following arguments:
+				. remote (object, the ``one" part of the relation)
+				. name (field name for the *remote* object - optional)
+
+			When the Object itself (field owner) is defined (MetaClass called),
+			following extra fields are setted:
+				. __owner__ : field class owner
+				. __name__  : field name
+
 			remote    : remote klass
 			name      : local field name
 			fieldname : name of peer Reference field
@@ -103,114 +112,53 @@ class Reference(Field):
 
 		self.remote    = remote
 		self.name      = name
-		self.fieldname = fieldname
-		self.reverse   = reverse
+		
+#		self.fieldname = fieldname
+#		self.reverse   = reverse
 
-		if reverse:
-			self.__hidden__ = True
-#			self.default    = ReferenceList()
+#		if reverse:
+#			self.__hidden__ = True
+##			self.default    = ReferenceList()
 
-		self.peer         = None
-		if peer:
-			self.peer       = peer
-			self.__owner__  = peer.remote
+#		self.peer         = None
+#		if peer:
+#			self.peer       = peer
+#			self.__owner__  = peer.remote
 
-			if self.name is None:
-				self.name = "%s__%s" % (remote.__name__, peer.name)
+#			if self.name is None:
+#				self.name = "%s__%s" % (remote.__name__, peer.name)
 
 
-	def __str__(self):
-	    q = "%s(%s=%s)" % (self.__class__.__name__, self.name, self.__default__)
-	    if self.reverse:
-	        q = '*' + q
-	    if self.__hidden__:
-	        q = '#' + q
-	    return q
+#	def __str__(self):
+#	    q = "%s(%s=%s)" % (self.__class__.__name__, self.name, self.__default__)
+#	    if self.reverse:
+#	        q = '*' + q
+#	    if self.__hidden__:
+#	        q = '#' + q
+#	    return q
 
 	def default(self):
-		return ReferenceList(self, self.fieldname) if self.reverse else None
+		return None #ReferenceList(self, self.fieldname) if self.reverse else None
 
 
 class ReferenceSet(Field):
 	def __init__(self, remote, *args, **kwargs):
+		"""
+			A ReferenceSet is defined for an Object with following arguments:
+				. linked-to objet (called remote)
+
+			When the Object itself (field owner) is defined (MetaClass called),
+			following extra fields are setted:
+				. __owner__ : field class owner
+				. __name__  : field name
+		"""
 		super(ReferenceSet, self).__init__(*args, **kwargs)
 		
 		self.remote     = remote
-		self.__hidden__ = True
 		
 		Database.register_reference(self)
 
 	def default(self):
-		return ReferenceList(self, self.remote)
-
-
-#class ReferenceList(object):
-#	def __init__(self, field, peer):
-#		"""
-#			remote   : remote fieldname
-#		"""
-#		self.__items__    = []
-
-#		# tracking changes
-#		self.__added__    = []
-#		self.__removed__  = []
-
-#		self.__owner__    = None
-#		self.__fld__      = field
-#		self.__peer__     = peer
-
-#	def append(self, value):
-#		"""Update internal sets
-#		"""
-#		self.__append__(value)
-
-#		# propagate
-#		if value.__dict__[self.__peer__]:
-#			getattr(value.__dict__[self.__peer__], self.__fld__.name).remove(value)
-
-#		value.__dict__[self.__peer__] = self.__owner__
-
-#	def __append__(self, value):
-#		self.__items__.append(value)
-#		self.__added__.append(value)
-#		self.__owner__.__changes__[self.__fld__.name] = self
-
-#	def remove(self, value):
-#		self.__remove__(value)
-
-#	def __remove__(self, value):
-#		i = self.__items__.index(value)
-#		self.__delitem__(i)
-
-#	def __delitem__(self, idx):
-#		"""Update internal sets
-#		"""
-#		value = self.__items__[idx]
-#		del self.__items__[idx]
-#		if value in self.__added__:
-#			self.__added__.remove(value)
-#		else:
-#			self.__removed__.append(value)
-
-#	def __len__(self):
-#		return len(self.__items__)
-
-#	def save(self):
-#		for itm in self.__added__:
-#			itm.save()
-#		del self.__added__[:]
-#			
-#		for itm in self.__removed__:
-#			itm.save()
-#		del self.__removed__[:]
-
-#	def __unicode__(self):
-#		return str(self.__items__)
-
-#	def __str__(self):
-#		return self.__unicode__()
-
-#	def __repr__(self):
-#		return self.__unicode__()
+		return None #return ReferenceList(self, self.remote)
 
 
