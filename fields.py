@@ -43,18 +43,17 @@ class Field(object):
 			
 			setattr(cls, name, obj)
 
-	def __init__(self, name=None, allow_none=True, pk=False, **kwargs):
+	def __init__(self, name=None, allow_none=False, pk=False, **kwargs):
 		"""Instanciate a new Field
 
-			. name   : field name
-			. notnull: None value allowed
+			. name : field name
+			. none : None value allowed
 		"""
 		self.__owner__   = False
 		self.name        = name
 		self.none        = allow_none
 		self.pk          = pk
 		self.unique      = False
-		self.__default__ = None
 		self.__hidden__  = False
 
 		if 'default' in kwargs:
@@ -128,7 +127,13 @@ class Reference(Field):
 
 		self.remote    = (remote, name)
 		self.sibling   = sibling
+		if sibling:
+			self.__hidden__ = True
+
 		self.reverse   = reverse
+		self.__auto__  = False
+
+		self.none      = False
 #		self.name      = name
 		
 #		self.fieldname = fieldname

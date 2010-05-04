@@ -13,6 +13,9 @@ class SQLiteStorage(object):
         res = self.db.execute(query)
 
     def create_join_table(self, ref):
+        """
+          cannot be private or will not be inherited
+        """
         if ref.reverse:
             ref = ref.sibling
 
@@ -28,6 +31,7 @@ class SQLiteStorage(object):
 
         for pk in ref.__owner__.__pk__:
             r = Reference(ref.__owner__, pk=True)
+            r.__auto__ = True
             
             dct["%s__%s" % (ref.__owner__.__stor_name__, pk.name)] = r
 #            dct['__refs__'][ref.__owner__].append((
@@ -36,6 +40,7 @@ class SQLiteStorage(object):
 
         for pk in ref.sibling.__owner__.__pk__:
             r = Reference(ref.sibling.__owner__, pk=True)
+            r.__auto__ = True
             
             dct["%s__%s" % (ref.sibling.__owner__.__stor_name__, pk.name)] = r
 
@@ -63,5 +68,6 @@ class SQLiteStorage(object):
 
                 join = self.create_join_table(ref)
                 print join.create()
-                refs.append(ref)
+                refs.append(ref); refs.append(ref.sibling)
+
             print obj.create()

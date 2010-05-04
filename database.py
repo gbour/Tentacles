@@ -70,41 +70,41 @@ class Storage(object):
 #		for ref in refs:
 #			cls.create_ref_table(ref)
 
-	@classmethod
-	def register_reference(cls, ref):
-		cls.__refs__.append(ref)
+#	@classmethod
+#	def register_reference(cls, ref):
+#		cls.__refs__.append(ref)
 
 	def create_tables(self):
 		for table in Database.__tables__:
 			print table.create()
 			
-	@classmethod
-	def create_ref_table(cls, ref):
-		import new
-		from tentacles import Table
-		from tentacles.fields import Reference
-		
-		global REFORDER
-		REFORDER += 1
+#	@classmethod
+#	def create_ref_table(cls, ref):
+#		import new
+#		from tentacles import Table
+#		from tentacles.fields import Reference
+#		
+#		global REFORDER
+#		REFORDER += 1
 
-		dct = {
-			'__table_name__': "join%03d__%s__%s" % \
-				(REFORDER, ref.__owner__.__table_name__, ref.remote.__table_name__),
-			'__refs__': {ref.__owner__: [], ref.remote: []}
-		}
-		
-		for pk in ref.__owner__.__pk__:
-		    dct["%s__%s" % (ref.__owner__.__table_name__, pk.name)] = Reference(ref.__owner__, primary_key=True)
-		    dct['__refs__'][ref.__owner__].append((
-		        dct["%s__%s" % (ref.__owner__.__table_name__, pk.name)],
-		        pk))
-		for pk in ref.remote.__pk__:
-		    dct["%s__%s" % (ref.remote.__table_name__, pk.name)]    = Reference(ref.remote, primary_key=True)
-		    dct['__refs__'][ref.remote].append((
-		        dct["%s__%s" % (ref.remote.__table_name__, pk.name)],
-		        pk))
+#		dct = {
+#			'__table_name__': "join%03d__%s__%s" % \
+#				(REFORDER, ref.__owner__.__table_name__, ref.remote.__table_name__),
+#			'__refs__': {ref.__owner__: [], ref.remote: []}
+#		}
+#		
+#		for pk in ref.__owner__.__pk__:
+#		    dct["%s__%s" % (ref.__owner__.__table_name__, pk.name)] = Reference(ref.__owner__, primary_key=True)
+#		    dct['__refs__'][ref.__owner__].append((
+#		        dct["%s__%s" % (ref.__owner__.__table_name__, pk.name)],
+#		        pk))
+#		for pk in ref.remote.__pk__:
+#		    dct["%s__%s" % (ref.remote.__table_name__, pk.name)]    = Reference(ref.remote, primary_key=True)
+#		    dct['__refs__'][ref.remote].append((
+#		        dct["%s__%s" % (ref.remote.__table_name__, pk.name)],
+#		        pk))
 
-		r = new.classobj('TableRef%03d__%s__%s' % (REFORDER, ref.__owner__.__name__, ref.remote.__name__), (Table,), dct)
-		ref.remote = r # owner
+#		r = new.classobj('TableRef%03d__%s__%s' % (REFORDER, ref.__owner__.__name__, ref.remote.__name__), (Table,), dct)
+#		ref.remote = r # owner
 
 

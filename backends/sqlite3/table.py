@@ -14,7 +14,7 @@ class Object(object):
 		for fld in cls.__fields__.itervalues():
 			if fld.__hidden__:
 				continue
-			
+
 			q += " " + fld.sql_def()
 
 #			if issubclass(fld.__class__, Reference):
@@ -27,7 +27,7 @@ class Object(object):
 				q += " UNIQUE"
 			if not fld.none:
 				q += " NOT NULL"
-			if hasattr(fld, 'default'):
+			if hasattr(fld, '__default__'):
 				q += " DEFAULT"
 				if fld.default() is None:
 					q += " NULL"
@@ -39,8 +39,8 @@ class Object(object):
 		if len(cls.__pk__) > 1:
 			q += "\n PRIMARY KEY ("
 			for pk in cls.__pk__:
-				q += pk.name + ','
-			q = q[:-1] + '),\n'
+				q += pk.name + ', '
+			q = q[:-2] + '),\n'
 			
 #		if hasattr(cls, '__refs__'):
 #		    for table, refs in cls.__refs__.iteritems():
