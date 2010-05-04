@@ -61,17 +61,20 @@ class Reference(Field):
 	def sql_def(self):
 		q = self.name
 		
-#		if len(self.remote.__pk__) == 1:
-#			q += " FOREIGN KEY REFERENCES ("
-#			for pk in self.remote.__pk__:
-#			    q += "%s.%s," % (self.remote.__table_name__, pk.name)
-#			q = q[:-1] + ")"
+		if len(self.remote[0].__pk__) > 1:
+			raise Exception("can't reference an Object with multi-fields primary key")
+		if len(self.remote[0].__pk__) == 0:
+			raise Exception("can't reference an Object without  primary key")
+
+
+		q += " FOREIGN KEY REFERENCES ("
+		for pk in self.remote[0].__pk__:
+		    q += "%s.%s," % (self.remote[0].__stor_name__, pk.name)
+		q = q[:-1] + ")"
+
 		return q
 
 class ReferenceSet(Field):
 	def sql_def(self):
-		return "%s FOREIGN KEY REFERENCES (%s.%s_id)" % \
-			(self.name, self.remote.__table_name__, self.__owner__.__table_name__)
+		raise Exception("May not happend")
 
-	def sql_extra(self):
-		return 'CREATE TABLE'

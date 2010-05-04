@@ -33,7 +33,7 @@ class MetaObject(type):
 		for fld in fields.itervalues():
 			fld.__owner__ = klass
 
-			if isinstance(fld, Reference):
+			if isinstance(fld, Reference) and not fld.__auto__:
 				# create sibling reference
 				siblname = fld.remote[1]
 				if not siblname:
@@ -43,6 +43,7 @@ class MetaObject(type):
 				ref = ReferenceSet(klass, name=fld.name, sibling=fld, reverse=True) #fieldname=fld.name, reverse=True, peer=fld)
 				ref.name      = siblname
 				ref.__owner__ = fld.remote[0]
+				ref.__inherit__(Storage.__instance__)
 
 				fld.remote[0].__fields__[siblname] = ref
 				fld.remote[0].__refs__.append(ref)
@@ -125,8 +126,10 @@ class Object(object):
 		#   value = 1st old value after last save
 		self.__dict__['__changes__'] = {}
 		self.__dict__['__saved__']   = False
-		# True is at least a value has been modified
+		# true when a change append in the object (field value, list content)
 		self.__dict__['__changed__'] = False
+		# initial values
+		self.__dict__['__origin__']  = {}
 
 		#
 		# each single attribute is replaced either by argument value, or by 
@@ -198,6 +201,7 @@ class Object(object):
 			self.__changes__[key] = value
 
 		self.__dict__[key]    = value
+		self.__dict__['__changed__'] = True
 
 
 	def has_changed(self):
