@@ -43,7 +43,7 @@ class Field(object):
 			
 			setattr(cls, name, obj)
 
-	def __init__(self, name=None, none=False, pk=False, **kwargs):
+	def __init__(self, name=None, allow_none=True, pk=False, **kwargs):
 		"""Instanciate a new Field
 
 			. name   : field name
@@ -51,7 +51,7 @@ class Field(object):
 		"""
 		self.__owner__   = False
 		self.name        = name
-		self.none        = none
+		self.none        = allow_none
 		self.pk          = pk
 		self.unique      = False
 		self.__default__ = None
@@ -106,7 +106,7 @@ class Datetime(Field):
 
 
 class Reference(Field):
-	def __init__(self, remote, name=None, sibling=None, **kwargs):#, fieldname=None, reverse=False, peer=None, **kwargs):
+	def __init__(self, remote, name=None, sibling=None, reverse=False, **kwargs):#, fieldname=None, reverse=False, peer=None, **kwargs):
 		"""
 			A Reference is a many2one relation, defined for an Object with following arguments:
 				. remote (object, the ``one" part of the relation)
@@ -128,6 +128,7 @@ class Reference(Field):
 
 		self.remote    = (remote, name)
 		self.sibling   = sibling
+		self.reverse   = reverse
 #		self.name      = name
 		
 #		self.fieldname = fieldname
@@ -158,20 +159,20 @@ class Reference(Field):
 		return None #ReferenceList(self, self.fieldname) if self.reverse else None
 
 
-class ReferenceSet(Field):
-	def __init__(self, remote, *args, **kwargs):
-		"""
-			A ReferenceSet is defined for an Object with following arguments:
-				. linked-to objet (called remote)
+class ReferenceSet(Reference):
+#	def __init__(self, remote, *args, **kwargs):
+#		"""
+#			A ReferenceSet is defined for an Object with following arguments:
+#				. linked-to objet (called remote)
 
-			When the Object itself (field owner) is defined (MetaClass called),
-			following extra fields are setted:
-				. __owner__ : field class owner
-				. __name__  : field name
-		"""
-		super(ReferenceSet, self).__init__(*args, **kwargs)
-		
-		self.remote     = remote
+#			When the Object itself (field owner) is defined (MetaClass called),
+#			following extra fields are setted:
+#				. __owner__ : field class owner
+#				. __name__  : field name
+#		"""
+#		super(ReferenceSet, self).__init__(*args, **kwargs)
+#		
+#		self.remote     = remote
 		
 #		Database.register_reference(self)
 

@@ -1,4 +1,4 @@
 
-from database import SQLiteDatabase as Database
-from table    import Table
+from database import SQLiteStorage as Storage
+from table    import Object
 #from fields import *

@@ -2,15 +2,15 @@ import inspect, types, StringIO, sqlite3
 from tentacles.fields import Reference
 
 
-class Table(object):
+class Object(object):
 	sqlite3 = None
 
 	def __init__(self, *args, **kwargs):
-		self.zz = 22
+		pass
 
 	@classmethod
 	def create(cls):
-		q = 'CREATE TABLE ' + cls.__table_name__ + ' ( \n'
+		q = 'CREATE TABLE ' + cls.__stor_name__ + ' ( \n'
 		for fld in cls.__fields__.itervalues():
 			if fld.__hidden__:
 				continue
@@ -25,7 +25,7 @@ class Table(object):
 				q += " PRIMARY KEY"
 			if fld.unique:
 				q += " UNIQUE"
-			if fld.notnull:
+			if not fld.none:
 				q += " NOT NULL"
 			if hasattr(fld, 'default'):
 				q += " DEFAULT"
@@ -42,18 +42,18 @@ class Table(object):
 				q += pk.name + ','
 			q = q[:-1] + '),\n'
 			
-		if hasattr(cls, '__refs__'):
-		    for table, refs in cls.__refs__.iteritems():
-		        if len(refs) < 2:
-		            continue
-		        
-		        q += ' FOREIGN KEY ('
-		        for local, remote in refs:
-		            q += "%s, " % local.name
-		        q = q[:-2] + ') REFERENCES %s (' % table.__table_name__
-		        for local, remote in refs:
-		            q += "%s, " % remote.name
-		        q = q[:-2] + '),\n'
+#		if hasattr(cls, '__refs__'):
+#		    for table, refs in cls.__refs__.iteritems():
+#		        if len(refs) < 2:
+#		            continue
+#		        
+#		        q += ' FOREIGN KEY ('
+#		        for local, remote in refs:
+#		            q += "%s, " % local.name
+#		        q = q[:-2] + ') REFERENCES %s (' % table.__table_name__
+#		        for local, remote in refs:
+#		            q += "%s, " % remote.name
+#		        q = q[:-2] + '),\n'
 		q = q[:-2] + '\n)'
 		return q
 

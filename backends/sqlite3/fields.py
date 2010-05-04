@@ -61,11 +61,11 @@ class Reference(Field):
 	def sql_def(self):
 		q = self.name
 		
-		if len(self.remote.__pk__) == 1:
-			q += " FOREIGN KEY REFERENCES ("
-			for pk in self.remote.__pk__:
-			    q += "%s.%s," % (self.remote.__table_name__, pk.name)
-			q = q[:-1] + ")"
+#		if len(self.remote.__pk__) == 1:
+#			q += " FOREIGN KEY REFERENCES ("
+#			for pk in self.remote.__pk__:
+#			    q += "%s.%s," % (self.remote.__table_name__, pk.name)
+#			q = q[:-1] + ")"
 		return q
 
 class ReferenceSet(Field):

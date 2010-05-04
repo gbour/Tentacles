@@ -41,7 +41,8 @@ class MetaObject(type):
 					fld.remote = (fld.remote[0], siblname)
 
 				ref = ReferenceSet(klass, name=fld.name, sibling=fld, reverse=True) #fieldname=fld.name, reverse=True, peer=fld)
-				ref.name = siblname
+				ref.name      = siblname
+				ref.__owner__ = fld.remote[0]
 
 				fld.remote[0].__fields__[siblname] = ref
 				fld.remote[0].__refs__.append(ref)
@@ -87,7 +88,7 @@ class MetaObject(type):
 class Object(object):
 	__metaclass__   = MetaObject
 	# stored table name
-	__name__        = None
+	__stor_name__        = None
 	# ordered list of object fields
 	__fields__      = odict()
 	# list of primary key fields
