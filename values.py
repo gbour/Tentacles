@@ -1,9 +1,9 @@
 
 class RefList(object):
-	def __init__(self, owner, name, target):
-		self.__owner__    = owner
-		self.__name__     = name
-		self.__target__   = target                 # (object instance, fieldname) tuple
+	def __init__(self): #, owner, name, target):
+#		self.__owner__    = owner
+#		self.__name__     = name
+#		self.__target__   = target                 # (object instance, fieldname) tuple
 
 		self.__items__    = []
 
@@ -20,7 +20,8 @@ class RefList(object):
 			self.__removed__.remove(value)
 		else:
 			self.__added__.append(value)
-			self.__owner__.__changed__ = True
+#			print type(self.__owner__), dir(self.__owner__)
+			self.__owner__.__dict__['__changed__'] = True
 
 		return True
 

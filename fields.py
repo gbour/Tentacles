@@ -2,6 +2,7 @@
 
 import inspect, types, sys
 from tentacles import Storage
+from tentacles.values import o2m_RefList, m2m_RefList
 
 ORDER = 0
 
@@ -78,7 +79,7 @@ class Field(object):
 	    return self.__str__()
 
 
-	def default(self):
+	def default(self, *args):
 		return self.__default__
 
 
@@ -160,7 +161,7 @@ class Reference(Field):
 ##	        q = '#' + q
 #	    return q
 
-	def default(self):
+	def default(self, *args):
 		return None #ReferenceList(self, self.fieldname) if self.reverse else None
 
 
@@ -181,7 +182,8 @@ class ReferenceSet(Reference):
 		
 #		Database.register_reference(self)
 
-	def default(self):
-		return None #return ReferenceList(self, self.remote)
+	def default(self, *args):
+#		return m2m_RefList(args[0], self.name, None) #return ReferenceList(self, self.remote)
+		return m2m_RefList()
 
 

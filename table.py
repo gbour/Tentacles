@@ -72,19 +72,7 @@ class MetaObject(type):
 
 #		Database.register_table(cls)
 
-#Table
-#  (C) __table_name__ : (str)   stored table name (default: table.__name__.lower())
-#  (C) __fields__     : (odict) table fields
-#  (C) __pk__         : (list)  primary key fields
 
-#  (I) fld1, fld2     : field values
-#  (I) __changes__    : (dict) fields that have changed values
-#  (I) __saved__      : (bool) did this instance has been saved once at least
-#  (I) __changed__    : (bool) true when a change append in the object (field value, list content
-#  (I) __origin__     : (dict) primary keys previous values
-#     if we changed a primary key value, we must know the original value to save
-#     change (UPDATE action)
-  
 
 class Object(object):
 	__metaclass__   = MetaObject
@@ -151,7 +139,7 @@ class Object(object):
 				value = kw[name]
 
 			if value is None:
-				value = fld.default()
+				value = fld.default(self)
 
 			self.__dict__[name] = None
 			setattr(self, name, value)
@@ -179,23 +167,31 @@ class Object(object):
 		fld = self.__fields__[key]
 		fld.check(value)	# raise exception if failed
 
-		if isinstance(fld, Reference):
-#			print 'PLOP', self, fld, fld.reverse
-			if fld.reverse:
-				value.__owner__ = self
+		# ,normally, ReferenceSet field are set for once at all
+		if isinstance(fld, ReferenceSet):
+			value.__owner__  = self
+			value.__name__   = key
+			value.__target__ = fld.remote # tuple Object, fieldname
 
-			else:
-				self.__changes__[key] = value
+		# setting a Reference value => must update sibling ReferenceSet
+		elif isinstance(fld, Reference):
+			refset = getattr(value, fld.remote[1])
+			refset.__append__(self)
+#			if fld.reverse:
+#				value.__owner__ = self
 
-				# remove old value
-				if getattr(self, key) is not None:
-					old = getattr(self, key)
-					lst = getattr(old, fld.peer.name)
-					lst.__remove__(self)
+#			else:
+#				self.__changes__[key] = value
 
-				# get RelationList 
-				rellist = getattr(value, fld.peer.name)
-				rellist.__append__(self)
+#				# remove old value
+#				if getattr(self, key) is not None:
+#					old = getattr(self, key)
+#					lst = getattr(old, fld.peer.name)
+#					lst.__remove__(self)
+
+#				# get RelationList 
+#				rellist = getattr(value, fld.peer.name)
+#				rellist.__append__(self)
 
 		else:
 			self.__changes__[key] = value
@@ -205,7 +201,7 @@ class Object(object):
 
 
 	def has_changed(self):
-		return len(self.__changes__) > 0
+		return self.__changed__
 
 	def changes(self):
 		return self.__changes__
@@ -216,3 +212,4 @@ class Object(object):
 	def __repr__(self):
 		return '%s(%s=%s)' % \
 			(self.__class__.__name__, self.__pk__[0].name, getattr(self, self.__pk__[0].name))
+			
