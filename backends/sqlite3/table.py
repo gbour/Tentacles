@@ -1,5 +1,5 @@
 import inspect, types, StringIO, sqlite3
-from tentacles.fields import Reference
+from tentacles.fields import Reference, ReferenceSet
 
 
 class Object(object):
@@ -58,20 +58,20 @@ class Object(object):
 		return q
 
 	def save(self):
-		if len(self.__changes__) == 0:
+		if not self.__changed__:
 			return
 
 		# check references
-		for refdef in self.__references__:
-			refval = getattr(self, refdef.name)
-			if refval and not isinstance(refval, ReferenceList) and not refval.saved():
-				refval.save()
+#		for refdef in self.__refs__:
+#			refval = getattr(self, refdef.name)
+#			if refval and not isinstance(refval, ReferenceList) and not refval.saved():
+#				refval.save()
 
-		fields = filter(lambda x: not isinstance(x, ReferenceList), self.__changes__.values())
-		rels   = filter(lambda x: isinstance(x, ReferenceList), self.__changes__.values())
+#		fields = filter(lambda x: not isinstance(x, ReferenceList), self.__changes__.values())
+#		rels   = filter(lambda x: isinstance(x, ReferenceList), self.__changes__.values())
 #		print '!!',self.__table_name__, self.__changes__, fields, rels
 		
-		if len(fields) > 0:
+		if len(self.__changes__) > 0:
 			if self.__saved__:
 				q, values = self._update()
 			else:
@@ -80,49 +80,44 @@ class Object(object):
 
 			print q, values
 			
-		if len(rels) > 0:
-			for rel in rels:
-				rel.save()
+#		if len(rels) > 0:
+#			for rel in rels:
+#				rel.save()
 			
 		self.__changes__.clear()
+		self.__dict__['__changed__'] = False
 
 	def _insert(self):
 		values = []
-		q = 'INSERT INTO %s VALUES(' % self.__table_name__
+		q = 'INSERT INTO %s VALUES(' % self.__stor_name__
 		for name, fld in self.__fields__.iteritems():
-			if fld.__hidden__:
+#			if fld.__hidden__:
+			if isinstance(fld, ReferenceSet):
 				continue
 
 			q += '?, '
 			value = getattr(self, name)
-			if value is None:
-			    value = 'NULL'
+
+			# check if it is ok for sqlite
+#			if value is None:
+#			    value = 'NULL'
 			values.append(value)
 		q = q[:-2] + ')'
-
-#		q = 'INSERT INTO %s VALUES(' % self.__table_name__
-#		for name, fld in self.__fields__.iteritems():
-#			if fld.__hidden__:
-#				continue
-
-#			q += "?, "
-#			values.append(getattr(self, name))
-#		q = q[:-2] + ')'
 
 		return q, values
 
 	def _update(self):
 		values = []
-		q = 'UPDATE TABLE %s SET ' % self.__table_name__
+		q = 'UPDATE TABLE %s SET ' % self.__stor_name__
 
 		for name, value in self.__changes__.iteritems():
-			if isinstance(value, ReferenceList):
-				continue
+#			if isinstance(value, ReferenceList):
+#				continue
 
 			q += "%s = ?, " % name
 
-			if isinstance(self.__fields__[name], Reference):
-				value = getattr(value, value.__pk__[0].name)
+#			if isinstance(self.__fields__[name], Reference):
+#				value = getattr(value, value.__pk__[0].name)
 			values.append(value)
 		q = q[:-2] + ' WHERE '
 

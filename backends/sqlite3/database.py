@@ -12,7 +12,7 @@ class SQLiteStorage(object):
     def execute(self, query):
         res = self.db.execute(query)
 
-    def create_join_table(self, ref):
+    def _create_join_table(self, ref):
         """
           cannot be private or will not be inherited
         """
@@ -66,7 +66,7 @@ class SQLiteStorage(object):
                 if ref in refs or ref.sibling in refs or not isinstance(ref, ReferenceSet) or not isinstance(ref.sibling, ReferenceSet):
                     continue
 
-                join = self.create_join_table(ref)
+                join = self._create_join_table(ref)
                 print join.create()
                 refs.append(ref); refs.append(ref.sibling)
 
