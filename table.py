@@ -177,6 +177,8 @@ class Object(object):
 		elif isinstance(fld, Reference):
 			refset = getattr(value, fld.remote[1])
 			refset.__append__(self)
+
+			self.__changes__[key] = value
 #			if fld.reverse:
 #				value.__owner__ = self
 

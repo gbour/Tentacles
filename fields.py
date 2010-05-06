@@ -44,7 +44,7 @@ class Field(object):
 			
 			setattr(cls, name, obj)
 
-	def __init__(self, name=None, allow_none=False, pk=False, **kwargs):
+	def __init__(self, name=None, allow_none=True, pk=False, **kwargs):
 		"""Instanciate a new Field
 
 			. name : field name
@@ -52,11 +52,14 @@ class Field(object):
 		"""
 		self.__owner__   = False
 		self.name        = name
-		self.none        = allow_none
 		self.pk          = pk
+		self.none        = allow_none
+		if self.pk:
+			self.none = False
 		self.unique      = False
 		self.__hidden__  = False
 
+		print self, self.none
 		if 'default' in kwargs:
 			self.__default__   = kwargs['default']
 		if 'unique' in kwargs:
