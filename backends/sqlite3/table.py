@@ -62,8 +62,10 @@ class Object(object):
 			return
 
 		# check references
+#		print self
 #		for refdef in self.__refs__:
 #			refval = getattr(self, refdef.name)
+#			print refval
 #			if refval and not isinstance(refval, ReferenceList) and not refval.saved():
 #				refval.save()
 
