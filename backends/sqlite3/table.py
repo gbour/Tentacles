@@ -58,16 +58,18 @@ class Object(object):
 		return q
 
 	def save(self):
-		if not self.__changed__:
+		if not self.__changed__ or self.__locked__:
 			return
 
+		self.__dict__['__locked__'] = True
 		# check references
-#		print self
-#		for refdef in self.__refs__:
-#			refval = getattr(self, refdef.name)
-#			print refval
+		print 'SAVE>', self
+		for refdef in self.__refs__:
+			refval = getattr(self, refdef.name)
+			print 'Zzz.', refdef, refval
+			if refval and not refval.saved():
 #			if refval and not isinstance(refval, ReferenceList) and not refval.saved():
-#				refval.save()
+				refval.save()
 
 #		fields = filter(lambda x: not isinstance(x, ReferenceList), self.__changes__.values())
 #		rels   = filter(lambda x: isinstance(x, ReferenceList), self.__changes__.values())
@@ -81,13 +83,25 @@ class Object(object):
 				self.__dict__['__saved__'] = True
 
 			print q, values
-			
+
+		print 'refs=', self, self.__refs__
+		for refdef in self.__refs__:
+			refval = getattr(self, refdef.name)
+			print ' .. ', refdef, refval, type(refval)
+			if refval:
+				print '  haschanged=', refval.has_changed()
+			if refval and refval.has_changed():
+#			if refval and not isinstance(refval, ReferenceList) and not refval.saved():
+				print 'save', refval, type(refval)
+				refval.save()
+
 #		if len(rels) > 0:
 #			for rel in rels:
 #				rel.save()
 			
 		self.__changes__.clear()
 		self.__dict__['__changed__'] = False
+		self.__dict__['__locked__']  = False
 
 	def _insert(self):
 		values = []

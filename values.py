@@ -26,6 +26,7 @@ class RefList(object):
 		return True
 
 	def __remove__(self, value):
+		print 'rem:', self.__items__, self.__added__, value
 		self.__items__.remove(value) # raise ValueError if not found
 		if value in self.__added__:
 			self.__added__.remove(value)
@@ -54,6 +55,15 @@ class RefList(object):
 	def __repr__(self):
 		return self.__str()
 
+	def has_changed(self):
+		return(len(self.__added__) > 0 or len(self.__removed__) > 0)
+
+	def saved(self):
+		return False
+
+	def save(self):
+		raise Exception('NoOp')
+
 class o2m_RefList(RefList):
 	"""
 	"""
@@ -72,6 +82,19 @@ class o2m_RefList(RefList):
 
 		setattr(value, self.__target__[1], None)
 
+	def save(self):
+		print 'o2m::SAVE'
+		for obj in self.__added__:
+			obj.save()
+
+		for obj in self.__removed__:
+			obj.save()
+		
+		del self.__added__[:]
+		del self.__removed__[:]
+
+		
+
 class m2m_RefList(RefList):
 	def append(self, value):
 		if self.__append__(value):
@@ -87,6 +110,9 @@ class m2m_RefList(RefList):
 		value = super(m2m_RefList, self).__delitem__(i)
 
 		getattr(value, self.__target__[1]).__remove__(self.__owner__)
+
+	def save(self):
+		print 'm2m::save'
 
 
 
