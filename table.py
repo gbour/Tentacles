@@ -118,6 +118,8 @@ class Object(object):
 		self.__dict__['__changed__'] = False
 		# initial values
 		self.__dict__['__origin__']  = {}
+		# lock state
+		self.__dict__['__locked__']  = False
 
 		#
 		# each single attribute is replaced either by argument value, or by 
@@ -175,6 +177,14 @@ class Object(object):
 
 		# setting a Reference value => must update sibling ReferenceSet
 		elif isinstance(fld, Reference):
+			# update oldref
+			oldref = getattr(self, key)
+			if oldref:
+				refset = getattr(oldref, fld.remote[1])
+				print 'ZZ', refset
+				refset.__remove__(self)
+				print 'ZZ', refset
+				
 			refset = getattr(value, fld.remote[1])
 			refset.__append__(self)
 

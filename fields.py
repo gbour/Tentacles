@@ -59,7 +59,7 @@ class Field(object):
 		self.unique      = False
 		self.__hidden__  = False
 
-		print self, self.none
+#		print self, self.none
 		if 'default' in kwargs:
 			self.__default__   = kwargs['default']
 		if 'unique' in kwargs:
@@ -121,11 +121,15 @@ class Reference(Field):
 				. name      : field name
 
 
-			remote    : remote klass
-			name      : local field name
-			fieldname : name of peer Reference field
-			reverse   : contra-peer field
-			peer      : peer Reference field
+			sibling   : peer Reference/ReferenceSet field (owned by remote object)
+			reverse   : false if this is the reference Field as set by the user,
+								  true, if it is the automagically created sibling Reference field
+
+x			remote    : remote klass
+x			name      : local field name
+x			fieldname : name of peer Reference field
+x			reverse   : contra-peer field
+x			peer      : peer Reference field
 		"""
 		super(Reference, self).__init__(**kwargs)
 
@@ -137,7 +141,10 @@ class Reference(Field):
 		self.reverse   = reverse
 		self.__auto__  = False
 
-		self.none      = False
+# WHY???
+#		self.none      = False
+
+		
 #		self.name      = name
 		
 #		self.fieldname = fieldname
@@ -187,6 +194,10 @@ class ReferenceSet(Reference):
 
 	def default(self, *args):
 #		return m2m_RefList(args[0], self.name, None) #return ReferenceList(self, self.remote)
-		return m2m_RefList()
+		if isinstance(self.sibling, ReferenceSet):
+			val = m2m_RefList()
+		else:
+			val = o2m_RefList()
 
+		return val
 
