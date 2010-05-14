@@ -63,12 +63,13 @@ class Object(object):
 
 		self.__dict__['__locked__'] = True
 		# check references
-		print 'SAVE>', self
+#		print 'SAVE>', self
 		for refdef in self.__refs__:
 			refval = getattr(self, refdef.name)
-			print 'Zzz.', refdef, refval
-			if refval and not refval.saved():
+#			print 'Zzz.', refdef, refval, type(refval)
+			if refval is not None and not refval.saved():
 #			if refval and not isinstance(refval, ReferenceList) and not refval.saved():
+#				print '  . saving'
 				refval.save()
 
 #		fields = filter(lambda x: not isinstance(x, ReferenceList), self.__changes__.values())
@@ -84,16 +85,22 @@ class Object(object):
 
 			print q, values
 
-		print 'refs=', self, self.__refs__
+#		print 'refs=', self, self.__refs__
 		for refdef in self.__refs__:
 			refval = getattr(self, refdef.name)
-			print ' .. ', refdef, refval, type(refval)
-			if refval:
-				print '  haschanged=', refval.has_changed()
+#			print ' .. ', refdef, refval, type(refval)
+#			if refval:
+#				print '  haschanged=', refval.has_changed()
 			if refval and refval.has_changed():
 #			if refval and not isinstance(refval, ReferenceList) and not refval.saved():
-				print 'save', refval, type(refval)
+#				print 'save', refval, type(refval)
 				refval.save()
+
+			if refdef.name in self.__origin__:
+				if self.__origin__[refdef.name]:
+#					print 'save old', self.__origin__[refdef.name]
+					self.__origin__[refdef.name].save()
+				self.__origin__[refdef.name] = refval
 
 #		if len(rels) > 0:
 #			for rel in rels:
@@ -134,7 +141,7 @@ class Object(object):
 
 #			if isinstance(self.__fields__[name], Reference):
 #				value = getattr(value, value.__pk__[0].name)
-			values.append(value)
+			values.append(self.__fields__[name].serialize(value))
 		q = q[:-2] + ' WHERE '
 
 		for pk in self.__pk__:

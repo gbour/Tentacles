@@ -4,45 +4,51 @@ import inspect, types, sys
 from tentacles import Storage
 from tentacles.values import o2m_RefList, m2m_RefList
 
-ORDER = 0
+ORDER = 10
 
-class MetaField(type):
-	def __new__(cls, name, bases, dct):
-		"""
-			As class attributes are stored in a dictionary, python loose attributes
-			definition order.
+#class MetaField(type):
+#	def __new__(cls, name, bases, dct):
+#		"""
+#			As class attributes are stored in a dictionary, python loose attributes
+#			definition order.
 
-			We set __order__ attribute to each Object Field to keep this information
-		"""
-		global ORDER
-		dct['__order__'] = ORDER
-		ORDER += 1
+#			We set __order__ attribute to each Object Field to keep this information
+#		"""
+#		global ORDER
+#		dct['__order__'] = ORDER
+#		ORDER += 1
 
-		return type.__new__(cls, name, bases, dct)
+#		print ORDER, name, dct
+#		return type.__new__(cls, name, bases, dct)
 
 
 class Field(object):
-	__metaclass__ = MetaField
+#	__metaclass__ = MetaField
 
-	@classmethod
-	def __inherit__(cls, database):
+	def __inherit__(self, database):
 		"""Inherit attributes and methods from database backend
 		"""
 		modname = "tentacles.backends.%s.fields" % database.uri.scheme
 		exec "import %s" % modname
-		backend = getattr(sys.modules[modname], cls.__name__)
+		backend = getattr(sys.modules[modname], self.__class__.__name__)
 
 		for name, obj in inspect.getmembers(backend):
-			if name.startswith('__') or hasattr(cls, name):
+#			if name.startswith('__') or hasattr(cls, name):
+			if hasattr(self, name):
 				continue
 
 			if isinstance(obj, types.MethodType):
-				if obj.im_self is not None:																# class method
-					obj = types.MethodType(obj.im_func, cls)
-				else:
-					obj = obj.im_func
-			
-			setattr(cls, name, obj)
+#				if obj.im_self is not None:																# class method
+#					obj = types.MethodType(obj.im_func, self)
+#				else:
+#					obj = obj.im_func
+				obj = types.MethodType(obj.im_func, self)
+
+			setattr(self, name, obj)
+
+#		print 'inherited', self
+		self.__backend_init__()
+
 
 	def __init__(self, name=None, allow_none=True, pk=False, **kwargs):
 		"""Instanciate a new Field
@@ -50,6 +56,10 @@ class Field(object):
 			. name : field name
 			. none : None value allowed
 		"""
+		global ORDER
+		self.__order__ = ORDER
+		ORDER += 1
+
 		self.__owner__   = False
 		self.name        = name
 		self.pk          = pk
@@ -68,6 +78,13 @@ class Field(object):
 #			self.remote	= kwargs['remote']
 #		if 'owner' in kwargs:
 #			self.owner	= kwargs['owner']
+#		print 'instanciated', self
+
+		# 
+#		if Storage.__instance__:
+#			self.__inherit__(Storage.__instance__)
+		print '>>', self, self.__order__
+
 
 	def check(self, value):
 		pass
@@ -135,8 +152,8 @@ x			peer      : peer Reference field
 
 		self.remote    = (remote, name)
 		self.sibling   = sibling
-		if sibling:
-			self.__hidden__ = True
+#		if sibling:
+#			self.__hidden__ = True
 
 		self.reverse   = reverse
 		self.__auto__  = False
@@ -176,7 +193,7 @@ x			peer      : peer Reference field
 
 
 class ReferenceSet(Reference):
-#	def __init__(self, remote, *args, **kwargs):
+	def __init__(self, *args, **kwargs):
 #		"""
 #			A ReferenceSet is defined for an Object with following arguments:
 #				. linked-to objet (called remote)
@@ -186,7 +203,9 @@ class ReferenceSet(Reference):
 #				. __owner__ : field class owner
 #				. __name__  : field name
 #		"""
-#		super(ReferenceSet, self).__init__(*args, **kwargs)
+		super(ReferenceSet, self).__init__(*args, **kwargs)
+
+		self.__hidden__ = True
 #		
 #		self.remote     = remote
 		
@@ -195,7 +214,7 @@ class ReferenceSet(Reference):
 	def default(self, *args):
 #		return m2m_RefList(args[0], self.name, None) #return ReferenceList(self, self.remote)
 		if isinstance(self.sibling, ReferenceSet):
-			val = m2m_RefList()
+			val = m2m_RefList(reverse=self.reverse, sibling=self.sibling)
 		else:
 			val = o2m_RefList()
 

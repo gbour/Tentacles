@@ -75,7 +75,7 @@ class Storage(object):
 #		cls.__refs__.append(ref)
 
 	def create_tables(self):
-		for table in Database.__tables__:
+		for table in Storage.__objects__:
 			print table.create()
 			
 #	@classmethod

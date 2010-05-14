@@ -1,5 +1,8 @@
 
+import new
 from datetime import datetime
+from tentacles import Object
+from tentacles import fields
 
 #import orm.fields as base
 class Field(object):
@@ -14,12 +17,23 @@ class Field(object):
 	def sql_extra(self):
 		return ''
 
+	def serialize(self, value):
+		return value
+
+	def __backend_init__(self):
+		"""Called at init time
+
+			Replace lack of inheritance
+		"""
+#		print 'Field::init', self
+		pass
+	
 class Integer(Field):
 	sql_type = 'INTEGER'
 	
 	def __init__(self):
 		print 'SQINIT'
-		
+
 #	def sql_def(self):
 #		# generic SQL definition
 #		q = "%s INTEGER" % self.name
@@ -74,7 +88,58 @@ class Reference(Field):
 
 		return q
 
+	def serialize(self, value):
+		return getattr(value, value.__pk__[0].name)
+
+
+JOIN_COUNT = 0
+
 class ReferenceSet(Field):
+#	@staticmethod
+	def __backend_init__(self):
+		"""We instanciate join table
+		"""
+#		print '>> backend::init=', self, self.reverse, self.sibling, self.remote
+#		print self, dir(self)
+		if not isinstance(self.sibling, fields.ReferenceSet) or self.reverse:
+			return
+
+		global JOIN_COUNT
+		JOIN_COUNT += 1
+
+		self.__obj_name__ = "join%03d__%s_%s" % \
+			(JOIN_COUNT, self.__owner__.__stor_name__, self.name)
+#		self.sibling.__obj_name__ = self.__obj_name__
+		
+		dct = {
+			'__obj_name__': self.__obj_name__,
+			'__refs__': {self.__owner__: [], self.remote: []}
+		}
+
+
+		for pk in self.__owner__.__pk__:
+			r = fields.Reference(self.__owner__, pk=True)
+			r.__auto__ = True
+
+			dct["%s__%s" % (self.__owner__.__stor_name__, pk.name)] = r
+
+		for pk in self.sibling.__owner__.__pk__:
+			r = fields.Reference(self.sibling.__owner__, pk=True)
+			r.__auto__ = True
+
+			dct["%s__%s" % (self.sibling.__owner__.__stor_name__, pk.name)] = r
+
+			join = new.classobj('Join%03d__%s_%s' % (JOIN_COUNT, self.__owner__.__stor_name__, self.name), 
+				(Object,), dct)
+
+
+
 	def sql_def(self):
 		raise Exception("May not happend")
 
+	def serialize(self):
+		raise Exception('May not happend')
+
+#	@classmethod
+#	def init(cls):
+#		print 'RefSet::init', cls, dir(cls)

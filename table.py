@@ -4,6 +4,8 @@ from odict import odict
 from tentacles          import Storage
 from tentacles.fields   import Field, Reference, ReferenceSet
 
+from tentacles import fields as fieldsmod
+
 class MetaObject(type):
 	def __new__(cls, name, bases, dct):
 		fields = odict()
@@ -31,6 +33,7 @@ class MetaObject(type):
 		klass = type.__new__(cls, name, bases, dct)
 
 		for fld in fields.itervalues():
+#			print 'powned', fld
 			fld.__owner__ = klass
 
 			if isinstance(fld, Reference) and not fld.__auto__:
@@ -59,6 +62,9 @@ class MetaObject(type):
 
 		if not klass.__name__ == 'Object':
 			Storage.register(klass)
+
+		fieldsmod.ORDER += 10
+		
 		return klass
 	
 #	def __init__(cls, name, bases, dct):
@@ -106,7 +112,7 @@ class Object(object):
 			setattr(cls, name, obj)
 			
 		for fld in cls.__fields__.itervalues():
-		    fld.__inherit__(database)
+				fld.__inherit__(database)
 
 	def __init__(self, *args, **kw):
 		# __changes__ track changed fields 
@@ -181,14 +187,16 @@ class Object(object):
 			oldref = getattr(self, key)
 			if oldref:
 				refset = getattr(oldref, fld.remote[1])
-				print 'ZZ', refset
+				print 'refset=', refset, type(refset)
 				refset.__remove__(self)
-				print 'ZZ', refset
 				
 			refset = getattr(value, fld.remote[1])
 			refset.__append__(self)
 
 			self.__changes__[key] = value
+
+			if key not in self.__origin__:
+				self.__origin__[key] = getattr(self, key)
 #			if fld.reverse:
 #				value.__owner__ = self
 
