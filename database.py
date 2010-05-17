@@ -5,7 +5,7 @@ REFORDER = 0
 
 class Uri(object):
 	def __init__(self, raw):
-		m = re.match('^(?P<scheme>\w+):(//((?P<username>[\w]+):(?P<password>[\w]+)@)?(?P<host>[\w.]+)(?P<port>\d+)?/)?(?P<db>[\w/.]+)', raw, re.U|re.L)
+		m = re.match('^(?P<scheme>\w+):(//((?P<username>[\w]+):(?P<password>[\w]+)@)?(?P<host>[\w.]+)(?P<port>\d+)?/)?(?P<db>[\w:/.]+)', raw, re.U|re.L)
 	
 		for k, v in m.groupdict().iteritems():
 			setattr(self, k, v)
@@ -37,6 +37,9 @@ class Storage(object):
 			setattr(self, name, obj)
 		
 		self.__class__.__instance__ = self
+
+		# call backend init method
+		types.MethodType(backend.__init__.im_func, self)(self.uri)
 
 
 	@classmethod

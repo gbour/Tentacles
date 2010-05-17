@@ -103,6 +103,9 @@ class Object(object):
 			if name.startswith('__') or hasattr(cls, name):
 				continue
 
+#			print name, obj
+#			if inspect.isfunction(obj):                                 # static method
+#					obj = types.MethodType(obj, None)
 			if isinstance(obj, types.MethodType):
 				if obj.im_self is not None:                               # class method
 					obj = types.MethodType(obj.im_func, cls)

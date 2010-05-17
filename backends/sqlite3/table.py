@@ -1,5 +1,6 @@
 import inspect, types, StringIO, sqlite3
 from tentacles.fields import Reference, ReferenceSet
+from tentacles import Storage
 
 
 class Object(object):
@@ -86,6 +87,10 @@ class Object(object):
 				self.__dict__['__saved__'] = True
 
 			print q, values
+			autoid = Storage.__instance__.execute(q, values)
+
+			if self.__pk__[0].autoincrement:
+				setattr(self, self.__pk__[0].name, autoid)
 
 #		print 'refs=', self, self.__refs__
 		for refdef in self.__refs__:
@@ -153,3 +158,7 @@ class Object(object):
 
 		q = q[:-4]
 		return q, values
+
+	@classmethod
+	def get(cls, **kwargs):
+		print 'get', kwargs

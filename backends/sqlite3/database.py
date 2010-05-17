@@ -5,12 +5,13 @@ from tentacles.fields import Reference, ReferenceSet
 REFORDER = 1
 
 class SQLiteStorage(object):
-    def __init__(self, uri):
-        self.uri = uri
-        self.db = sqlite3.connect(uri.db)
-        
-    def execute(self, query):
-        res = self.db.execute(query)
+	def __init__(self, uri):
+		self.db = sqlite3.connect(uri.db)
+		self.cursor = self.db.cursor()
+
+	def execute(self, query, args=()):
+		res = self.cursor.execute(query, args)
+		return self.cursor.lastrowid
 
 #    def _save_join_table(self, )
 #    def _create_join_table(self, ref):
@@ -60,9 +61,9 @@ class SQLiteStorage(object):
 
 #        return join
 
-    def create(self):
+	def create(self):
 #        refs = []
-        for obj in self.__objects__:
+		for obj in self.__objects__:
 #            for ref in obj.__refs__:
 #                if ref in refs or ref.sibling in refs or not isinstance(ref, ReferenceSet) or not isinstance(ref.sibling, ReferenceSet):
 #                    continue
@@ -71,4 +72,6 @@ class SQLiteStorage(object):
 #                print join.create()
 #                refs.append(ref); refs.append(ref.sibling)
 
-            print obj.create()
+			q = obj.create()
+			print q
+			self.execute(q)
