@@ -7,11 +7,17 @@ REFORDER = 1
 class SQLiteStorage(object):
 	def __init__(self, uri):
 		self.db = sqlite3.connect(uri.db)
+		self.db.row_factory = sqlite3.Row
+
 		self.cursor = self.db.cursor()
 
 	def execute(self, query, args=()):
 		res = self.cursor.execute(query, args)
 		return self.cursor.lastrowid
+
+	def query(self, query, args=()):
+		self.cursor.execute(query, args)
+		return self.cursor.fetchall()
 
 #    def _save_join_table(self, )
 #    def _create_join_table(self, ref):
