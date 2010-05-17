@@ -161,4 +161,28 @@ class Object(object):
 
 	@classmethod
 	def get(cls, **kwargs):
-		print 'get', kwargs
+		values = []
+		q      = "SELECT * FROM %s WHERE " % cls.__stor_name__
+
+		for k, v in kwargs.iteritems():
+			q += "%s = ? AND " % k
+			values.append(v)
+
+		q = q[:-4]
+
+		res = []
+		for item in Storage.__instance__.query(q, values):
+			obj = object.__new__(cls)
+			obj.__init__()
+
+			for fldname in obj.__fields__:
+				obj.__dict__[fldname] = item[fldname]
+
+			obj.__dict__['__saved__'] = True
+			obj.__changes__.clear()
+			obj.__dict__['__changed__'] = False
+
+			res.append(obj)
+
+		return res
+
