@@ -68,6 +68,7 @@ class Field(object):
 			self.none = False
 		self.unique      = False
 		self.__hidden__  = False
+		self.autoincrement = False
 
 #		print self, self.none
 		if 'default' in kwargs:
@@ -100,13 +101,19 @@ class Field(object):
 
 
 	def default(self, *args):
-		return self.__default__
+		if hasattr(self, '__default__'):
+			return self.__default__
+
+		return None
 
 
 class Integer(Field):
-#	type = int
-	pass
+	def __init__(self, pk=False, autoincrement=False, *args, **kwargs):
+		super(Integer, self).__init__(pk=pk, *args, **kwargs)
 
+		if autoincrement and not pk:
+			raise Exception('only pk can be autoincremented')
+		self.autoincrement = autoincrement
 
 class String(Field):
 #	type = unicode

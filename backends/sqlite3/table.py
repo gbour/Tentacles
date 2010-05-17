@@ -25,6 +25,8 @@ class Object(object):
 				q += " PRIMARY KEY"
 			if fld.unique:
 				q += " UNIQUE"
+			if fld.autoincrement:
+				q += " AUTOINCREMENT"
 			if not fld.none:
 				q += " NOT NULL"
 			if hasattr(fld, '__default__'):
