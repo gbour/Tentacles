@@ -182,9 +182,9 @@ class Object(object):
 					continue
 
 				if isinstance(fld, Reference):
-					obj.__dict__[name] = Ghost(fld.__owner__, {name: item[name]})
+					obj.__values__[name] = Ghost(fld.remote[0], {fld.remote[0].__pk__[0].name: item[name]})
 				else:
-					obj.__dict__[name] = item[name]
+					obj.__values__[name] = item[name]
 				if fld.pk:
 					obj.__origin__[name] = item[name]
 

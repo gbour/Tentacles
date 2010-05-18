@@ -55,7 +55,7 @@ class RefList(object):
 		return str(self.__items__)
 
 	def __repr__(self):
-		return self.__str()
+		return self.__str__()
 
 	def has_changed(self):
 		return(len(self.__added__) > 0 or len(self.__removed__) > 0)

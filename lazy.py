@@ -4,10 +4,11 @@ class Ghost(object):
 		self.__target__ = target
 		self.__pks__    = pks
 
-	def load():
-		kwargs = self.__pls__.copy()
+	def load(self):
+		kwargs = self.__pks__.copy()
 		kwargs['lazy'] = False
-		return self.__target__.get(**self.__pks__)
+
+		return self.__target__.get(**kwargs)
 
 	def __str__(self):
 		return "Ghost(%s=%s)" % (self.__target__.__name__, self.__pks__)

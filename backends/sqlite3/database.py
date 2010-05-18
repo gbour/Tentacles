@@ -16,6 +16,7 @@ class SQLiteStorage(object):
 		return self.cursor.lastrowid
 
 	def query(self, query, args=()):
+		print query, args
 		self.cursor.execute(query, args)
 		return self.cursor.fetchall()
 
