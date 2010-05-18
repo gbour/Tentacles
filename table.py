@@ -5,6 +5,7 @@ from tentacles          import Storage
 from tentacles.fields   import Field, Reference, ReferenceSet
 
 from tentacles import fields as fieldsmod
+from tentacles.lazy import Ghost
 
 class MetaObject(type):
 	def __new__(cls, name, bases, dct):
@@ -121,6 +122,9 @@ class Object(object):
 		# __changes__ track changed fields 
 		#   key   = fieldname (str)
 		#   value = 1st old value after last save
+
+		# fields values
+		self.__dict__['__values__']  = {}
 		self.__dict__['__changes__'] = {}
 		self.__dict__['__saved__']   = False
 		# true when a change append in the object (field value, list content)
@@ -152,7 +156,7 @@ class Object(object):
 			if value is None:
 				value = fld.default(self)
 
-			self.__dict__[name] = None
+			self.__values__[name] = None
 			setattr(self, name, value)
 
 			if fld.pk:
@@ -190,7 +194,6 @@ class Object(object):
 			oldref = getattr(self, key)
 			if oldref:
 				refset = getattr(oldref, fld.remote[1])
-				print 'refset=', refset, type(refset)
 				refset.__remove__(self)
 				
 			refset = getattr(value, fld.remote[1])
@@ -219,9 +222,21 @@ class Object(object):
 		else:
 			self.__changes__[key] = value
 
-		self.__dict__[key]    = value
+		self.__values__[key]         = value
 		self.__dict__['__changed__'] = True
 
+	def __getattr__(self, name):
+		"""Apply only to attributes no found in object __dict__
+		"""
+		value = self.__values__[name]
+
+		if isinstance(value, Ghost):
+			value = value.load()[0]
+			self.__values__[name] = value
+
+			#TODO: update peer ReferenceSet when Reference
+
+		return value
 
 	def has_changed(self):
 		return self.__changed__
