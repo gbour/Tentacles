@@ -85,7 +85,7 @@ class o2m_RefList(RefList):
 		setattr(value, self.__target__[1], None)
 
 	def save(self):
-		print 'o2m::SAVE'
+#		print 'o2m::SAVE'
 		for obj in self.__added__:
 			obj.save()
 

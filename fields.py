@@ -84,7 +84,7 @@ class Field(object):
 		# 
 #		if Storage.__instance__:
 #			self.__inherit__(Storage.__instance__)
-		print '>>', self, self.__order__
+#		print '>>', self, self.__order__
 
 
 	def check(self, value):
