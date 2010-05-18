@@ -1,6 +1,6 @@
 import inspect, types, StringIO, sqlite3
 from tentacles.fields import Reference, ReferenceSet
-from tentacles import Storage
+from tentacles import Storage, Ghost
 
 
 class Object(object):
@@ -127,6 +127,8 @@ class Object(object):
 
 			q += '?, '
 			value = getattr(self, name)
+			if value is not None and isinstance(fld, Reference):
+				value = getattr(value, value.__pk__[0].name)
 
 			# check if it is ok for sqlite
 #			if value is None:
@@ -138,7 +140,7 @@ class Object(object):
 
 	def _update(self):
 		values = []
-		q = 'UPDATE TABLE %s SET ' % self.__stor_name__
+		q = 'UPDATE %s SET ' % self.__stor_name__
 
 		for name, value in self.__changes__.iteritems():
 #			if isinstance(value, ReferenceList):
@@ -160,7 +162,7 @@ class Object(object):
 		return q, values
 
 	@classmethod
-	def get(cls, **kwargs):
+	def get(cls, lazy=True, **kwargs):
 		values = []
 		q      = "SELECT * FROM %s WHERE " % cls.__stor_name__
 
@@ -175,8 +177,16 @@ class Object(object):
 			obj = object.__new__(cls)
 			obj.__init__()
 
-			for fldname in obj.__fields__:
-				obj.__dict__[fldname] = item[fldname]
+			for name, fld in obj.__fields__.iteritems():
+				if isinstance(fld, ReferenceSet):
+					continue
+
+				if isinstance(fld, Reference):
+					obj.__dict__[name] = Ghost(fld.__owner__, {name: item[name]})
+				else:
+					obj.__dict__[name] = item[name]
+				if fld.pk:
+					obj.__origin__[name] = item[name]
 
 			obj.__dict__['__saved__'] = True
 			obj.__changes__.clear()

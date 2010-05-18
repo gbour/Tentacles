@@ -81,9 +81,10 @@ class Reference(Field):
 			raise Exception("can't reference an Object without  primary key")
 
 
-		q += " FOREIGN KEY REFERENCES ("
+		#TODO: must check referenced table primary key type
+		q += " INTEGER REFERENCES %s (" % self.remote[0].__stor_name__
 		for pk in self.remote[0].__pk__:
-		    q += "%s.%s," % (self.remote[0].__stor_name__, pk.name)
+		    q += "%s," % pk.name
 		q = q[:-1] + ")"
 
 		return q
