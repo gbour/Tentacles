@@ -7,7 +7,7 @@ class Ghost(object):
 	def load(self):
 		kwargs = self.__pks__.copy()
 		kwargs['lazy'] = False
-
+		print 'load', kwargs
 		return self.__target__.get(**kwargs)
 
 	def __str__(self):

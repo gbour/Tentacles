@@ -178,19 +178,24 @@ class Object(object):
 			obj.__init__()
 
 			for name, fld in obj.__fields__.iteritems():
+#				if isinstance(fld, ReferenceSet):
+#					continue
 				if isinstance(fld, ReferenceSet):
-					continue
-
-				if isinstance(fld, Reference):
-					obj.__values__[name] = Ghost(fld.remote[0], {fld.remote[0].__pk__[0].name: item[name]})
+					value = Ghost(fld.remote[0], {fld.remote[0].__pk__[0].name: fld.default()})
 				else:
-					obj.__values__[name] = item[name]
+					value = item[name]
+					if isinstance(fld, Reference):
+						value = Ghost(fld.remote[0], {fld.remote[0].__pk__[0].name: value})
+					
+#				obj.__values__[name] = item[name]
+				obj.__setattr__(name, value, propchange=False)
 				if fld.pk:
 					obj.__origin__[name] = item[name]
 
-			obj.__dict__['__saved__'] = True
-			obj.__changes__.clear()
-			obj.__dict__['__changed__'] = False
+#			obj.__dict__['__saved__'] = True
+#			obj.__changes__.clear()
+#			obj.__dict__['__changed__'] = False
+			obj.__reset__()
 
 			res.append(obj)
 
