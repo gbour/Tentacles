@@ -167,7 +167,15 @@ class Object(object):
 #		self.__lock__			= False
 #		self.__changes__.clear()
 
-	def __setattr__(self, key, value):
+	def __setattr__(self, key, value, propchange=True):
+		"""
+			propchange: 
+				. if True (default behaviour) a value change is notice in the object 
+				  for future saving (value is notices in __changes__ dict)
+				. if False, we don't notice this as a new value change. Used when loading
+					object from database
+		"""
+#		print 'SETATTR', key, value, propchange
 		# check field value
 		if not key in self.__fields__:
 			raise Exception('Unknown field %s' % key)
@@ -183,26 +191,27 @@ class Object(object):
 		fld.check(value)	# raise exception if failed
 
 		# ,normally, ReferenceSet field are set for once at all
-		if isinstance(fld, ReferenceSet):
-			value.__owner__  = self
-			value.__name__   = key
-			value.__target__ = fld.remote # tuple Object, fieldname
+		if propchange:
+			if isinstance(fld, ReferenceSet):
+					value.__owner__  = self
+					value.__name__   = key
+					value.__target__ = fld.remote # tuple Object, fieldname
 
 		# setting a Reference value => must update sibling ReferenceSet
-		elif isinstance(fld, Reference):
-			# update oldref
-			oldref = getattr(self, key)
-			if oldref:
-				refset = getattr(oldref, fld.remote[1])
-				refset.__remove__(self)
+			elif isinstance(fld, Reference):
+				# update oldref
+				oldref = getattr(self, key)
+				if oldref:
+					refset = getattr(oldref, fld.remote[1])
+					refset.__remove__(self)
 				
-			refset = getattr(value, fld.remote[1])
-			refset.__append__(self)
+				refset = getattr(value, fld.remote[1])
+				refset.__append__(self)
 
-			self.__changes__[key] = value
+				self.__changes__[key] = value
 
-			if key not in self.__origin__:
-				self.__origin__[key] = getattr(self, key)
+				if key not in self.__origin__:
+					self.__origin__[key] = getattr(self, key)
 #			if fld.reverse:
 #				value.__owner__ = self
 
@@ -218,21 +227,32 @@ class Object(object):
 #				# get RelationList 
 #				rellist = getattr(value, fld.peer.name)
 #				rellist.__append__(self)
-
-		else:
-			self.__changes__[key] = value
+			else:
+				self.__changes__[key] = value
 
 		self.__values__[key]         = value
-		self.__dict__['__changed__'] = True
 
+		if propchange:
+			self.__dict__['__changed__'] = True
+
+	def __reset__(self):
+		"""Reset changes
+		"""
+
+		self.__changes__.clear()
+		self.__dict__['__changed__'] = False
+		
 	def __getattr__(self, name):
 		"""Apply only to attributes no found in object __dict__
 		"""
+#		print 'GETATTR', name
 		value = self.__values__[name]
 
 		if isinstance(value, Ghost):
 			value = value.load()[0]
-			self.__values__[name] = value
+			print 'BEF'
+			self.__setattr__(name, value, propchange=False)
+			print 'AFT'
 
 			#TODO: update peer ReferenceSet when Reference
 
