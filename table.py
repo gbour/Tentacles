@@ -175,13 +175,14 @@ class Object(object):
 				. if False, we don't notice this as a new value change. Used when loading
 					object from database
 		"""
-#		print 'SETATTR', key, value, propchange
+#		print 'SETATTR', key, value, type(value), propchange
 		# check field value
 		if not key in self.__fields__:
 			raise Exception('Unknown field %s' % key)
 
 		#TODO: does not set if values are same
-		if getattr(self, key) == value:# == self.__dict__[key]:
+#		if getattr(self, key) == value:# == self.__dict__[key]:
+		if self.__values__[key] == value:
 			return False
 
 #		if not key in self.__origin__:
@@ -245,14 +246,12 @@ class Object(object):
 	def __getattr__(self, name):
 		"""Apply only to attributes no found in object __dict__
 		"""
-#		print 'GETATTR', name
 		value = self.__values__[name]
+#		print 'GETATTR', name, value
 
 		if isinstance(value, Ghost):
 			value = value.load()[0]
-			print 'BEF'
 			self.__setattr__(name, value, propchange=False)
-			print 'AFT'
 
 			#TODO: update peer ReferenceSet when Reference
 

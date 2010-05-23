@@ -162,7 +162,8 @@ class Object(object):
 		return q, values
 
 	@classmethod
-	def get(cls, lazy=True, **kwargs):
+	def get(cls, lazy=True, owner=None, **kwargs):
+#		print 'GET', cls, kwargs
 		values = []
 		q      = "SELECT * FROM %s WHERE " % cls.__stor_name__
 
@@ -181,11 +182,11 @@ class Object(object):
 #				if isinstance(fld, ReferenceSet):
 #					continue
 				if isinstance(fld, ReferenceSet):
-					value = Ghost(fld.remote[0], {fld.remote[0].__pk__[0].name: fld.default()})
+					value = Ghost(obj, fld, fld.remote[0], {fld.remote[0].__pk__[0].name: fld.default()})
 				else:
 					value = item[name]
 					if isinstance(fld, Reference):
-						value = Ghost(fld.remote[0], {fld.remote[0].__pk__[0].name: value})
+						value = Ghost(obj, fld, fld.remote[0], {fld.remote[0].__pk__[0].name: value})
 					
 #				obj.__values__[name] = item[name]
 				obj.__setattr__(name, value, propchange=False)

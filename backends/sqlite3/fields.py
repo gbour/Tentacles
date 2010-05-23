@@ -1,7 +1,7 @@
 
 import new
 from datetime import datetime
-from tentacles import Object
+from tentacles import Storage, Object, Ghost
 from tentacles import fields
 
 #import orm.fields as base
@@ -134,6 +134,33 @@ class ReferenceSet(Field):
 				(Object,), dct)
 
 
+	def get(self, owner=None, **kwargs):
+		"""Get relational datas
+
+			2 cases:
+				o2m: query remote object with local key to know which are related
+				m2m: query join table to get remote object ids
+		"""
+		print 'RefSet::get()', self, self.__dict__, owner, owner.__dict__, self.sibling
+
+		if isinstance(self.sibling, ReferenceSet):
+			q = ''
+		else:
+			q = "SELECT %s FROM %s WHERE %s = ?" % \
+				(self.remote[0].__pk__[0].name, self.remote[0].__stor_name__, self.remote[1])
+			values = [getattr(owner, owner.__pk__[0].name)]
+
+		#NOTE: row is a sqlite3.Row object
+		items = [Ghost(None, self.remote[1], self.remote[0], (row[0])) for row in Storage.__instance__.query(q, values)]
+#		o2m_RefList
+		seq = self.default()
+		print 'OO', self.__owner__, type(self.__owner__), owner, type(owner)
+		seq.__owner__  = owner
+		seq.__name__   = self.name
+		seq.__target__ = self.remote
+
+		seq.extend(items)
+		return [seq]
 
 	def sql_def(self):
 		raise Exception("May not happend")
