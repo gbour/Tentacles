@@ -66,6 +66,13 @@ class RefList(object):
 	def save(self):
 		raise Exception('NoOp')
 
+	def extend(self, seq):
+		for item in seq:
+			self.append(item)
+
+	def __getitem__(self, num):
+		return self.__items__[num]
+
 class o2m_RefList(RefList):
 	"""
 	"""
