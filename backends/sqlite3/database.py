@@ -83,5 +83,4 @@ class SQLiteStorage(object):
 #                refs.append(ref); refs.append(ref.sibling)
 
 			q = obj.create()
-			print q
 			self.execute(q)

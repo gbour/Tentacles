@@ -77,10 +77,6 @@ class Storage(object):
 #	def register_reference(cls, ref):
 #		cls.__refs__.append(ref)
 
-	def create_tables(self):
-		for table in Storage.__objects__:
-			print table.create()
-			
 #	@classmethod
 #	def create_ref_table(cls, ref):
 #		import new
