@@ -12,7 +12,10 @@ class SQLiteStorage(object):
 		self.cursor = self.db.cursor()
 
 	def execute(self, query, args=()):
+		print query, args
 		res = self.cursor.execute(query, args)
+#		self.db.commit()
+
 		return self.cursor.lastrowid
 
 	def query(self, query, args=()):

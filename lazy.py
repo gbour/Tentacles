@@ -9,6 +9,7 @@ class Ghost(object):
 		self.__pks__    = pks
 
 	def load(self):
+		print 'Ghost::load>', self.__owner__, self.__field__, self.__pks__
 		kwargs = self.__pks__.copy()
 		kwargs['lazy']  = False
 		kwargs['owner'] = self.__owner__

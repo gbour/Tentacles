@@ -1,5 +1,6 @@
 
 from tentacles          import Storage
+#from tentacles.lazy     import Ghost
 
 class RefList(object):
 	def __init__(self): #, owner, name, target):
@@ -66,12 +67,23 @@ class RefList(object):
 	def save(self):
 		raise Exception('NoOp')
 
+	def __extend__(self, seq):
+		for item in seq:
+			self.__append__(item)
+
 	def extend(self, seq):
 		for item in seq:
 			self.append(item)
 
 	def __getitem__(self, num):
-		return self.__items__[num]
+		item = self.__items__[num]
+
+		from tentacles.lazy import Ghost
+		if isinstance(item, Ghost):
+			item = item.load()[0]
+			self.__items__[num] = item
+
+		return item
 
 class o2m_RefList(RefList):
 	"""
@@ -102,7 +114,6 @@ class o2m_RefList(RefList):
 		del self.__added__[:]
 		del self.__removed__[:]
 
-		
 
 class m2m_RefList(RefList):
 	def __init__(self, reverse=False, sibling=None):
@@ -139,12 +150,14 @@ class m2m_RefList(RefList):
 #			print obj
 			obj.save()
 
+#		print 'reverse=', self.reverse
 		if not self.reverse:
 			fld = self.__owner__.__fields__[self.__name__]
 			q = "INSERT INTO %s VALUES (?, ?)" % fld.__obj_name__
 			for obj in self.__added__:
 				v = [getattr(self.__owner__, self.__owner__.__pk__[0].name), getattr(obj, obj.__pk__[0].name)]
-				print q, v
+#				print q, v
+				Storage.__instance__.execute(q, v)
 
 			q = "DELETE FROM %s WHERE %s__%s = ? AND %s__%s  = ?" % \
 				(fld.__obj_name__, self.__owner__.__stor_name__, self.__owner__.__pk__[0].name, 
@@ -152,7 +165,8 @@ class m2m_RefList(RefList):
 
 			for obj in self.__removed__:
 				v = [getattr(self.__owner__, self.__owner__.__pk__[0].name), getattr(obj, obj.__pk__[0].name)]
-				print q, v
+#				print q, v
+				Storage.__instance__.execute(q, v)
 
 
 
