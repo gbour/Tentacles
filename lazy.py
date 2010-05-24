@@ -9,12 +9,12 @@ class Ghost(object):
 		self.__pks__    = pks
 
 	def load(self):
-		print 'Ghost::load>', self.__owner__, self.__field__, self.__pks__
+#		print 'Ghost::load>', self.__owner__, self.__field__, self.__pks__
 		kwargs = self.__pks__.copy()
 		kwargs['lazy']  = False
 		kwargs['owner'] = self.__owner__
 		
-		print self.__field__, self.__target__
+#		print self.__field__, self.__target__
 		if isinstance(self.__field__, ReferenceSet):
 			# internally called =>  no args
 			value = self.__field__.get(**kwargs)

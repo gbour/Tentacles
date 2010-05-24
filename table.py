@@ -175,7 +175,7 @@ class Object(object):
 				. if False, we don't notice this as a new value change. Used when loading
 					object from database
 		"""
-#		print 'SETATTR', key, value, type(value), propchange
+		print 'SETATTR', key, value, type(value), propchange
 		# check field value
 		if not key in self.__fields__:
 			raise Exception('Unknown field %s' % key)
@@ -201,9 +201,11 @@ class Object(object):
 		# setting a Reference value => must update sibling ReferenceSet
 			elif isinstance(fld, Reference):
 				# update oldref
+				print 'is ref'
 				oldref = getattr(self, key)
 				if oldref:
 					refset = getattr(oldref, fld.remote[1])
+					print refset, type(refset)
 					refset.__remove__(self)
 				
 				refset = getattr(value, fld.remote[1])

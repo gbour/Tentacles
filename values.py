@@ -29,7 +29,7 @@ class RefList(object):
 		return True
 
 	def __remove__(self, value):
-#		print 'rem:', self.__items__, self.__added__, value
+		print 'rem:', self.__items__, self.__added__, value
 		self.__items__.remove(value) # raise ValueError if not found
 		if value in self.__added__:
 			self.__added__.remove(value)
@@ -153,14 +153,14 @@ class m2m_RefList(RefList):
 #		print 'reverse=', self.reverse
 		if not self.reverse:
 			fld = self.__owner__.__fields__[self.__name__]
-			q = "INSERT INTO %s VALUES (?, ?)" % fld.__obj_name__
+			q = "INSERT INTO %s VALUES (?, ?)" % fld.__stor_name__
 			for obj in self.__added__:
 				v = [getattr(self.__owner__, self.__owner__.__pk__[0].name), getattr(obj, obj.__pk__[0].name)]
 #				print q, v
 				Storage.__instance__.execute(q, v)
 
 			q = "DELETE FROM %s WHERE %s__%s = ? AND %s__%s  = ?" % \
-				(fld.__obj_name__, self.__owner__.__stor_name__, self.__owner__.__pk__[0].name, 
+				(fld.__stor_name__, self.__owner__.__stor_name__, self.__owner__.__pk__[0].name, 
 				self.sibling.__owner__.__stor_name__, self.sibling.__owner__.__pk__[0].name)
 
 			for obj in self.__removed__:

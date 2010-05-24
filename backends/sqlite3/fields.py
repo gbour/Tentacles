@@ -108,12 +108,12 @@ class ReferenceSet(Field):
 		global JOIN_COUNT
 		JOIN_COUNT += 1
 
-		self.__obj_name__ = "join%03d__%s_%s" % \
+		self.__stor_name__ = "join%03d__%s_%s" % \
 			(JOIN_COUNT, self.__owner__.__stor_name__, self.name)
-#		self.sibling.__obj_name__ = self.__obj_name__
+		self.sibling.__stor_name__ = self.__stor_name__
 		
 		dct = {
-			'__obj_name__': self.__obj_name__,
+			'__stor_name__': self.__stor_name__,
 			'__refs__': {self.__owner__: [], self.remote: []}
 		}
 
@@ -130,7 +130,7 @@ class ReferenceSet(Field):
 
 			dct["%s__%s" % (self.sibling.__owner__.__stor_name__, pk.name)] = r
 
-			join = new.classobj('Join%03d__%s_%s' % (JOIN_COUNT, self.__owner__.__stor_name__, self.name), 
+			join = new.classobj(self.__stor_name__[0].upper() + self.__stor_name__[1:], 
 				(Object,), dct)
 
 
@@ -142,13 +142,13 @@ class ReferenceSet(Field):
 				m2m: query join table to get remote object ids
 		"""
 #		print 'RefSet::get()', self, self.__dict__, owner, owner.__dict__, self.sibling
-		print 'RefSet::get()', self, self.sibling, self.__obj_name__
-		print owner, self.remote
+#		print 'RefSet::get()', self, self.sibling, self.__stor_name__
+#		print owner, self.remote, self.reverse
 
 		if isinstance(self.sibling, fields.ReferenceSet):
 			q = "SELECT %s FROM %s WHERE %s = ?" % \
 				("%s__%s" % (self.sibling.__owner__.__stor_name__, self.sibling.__owner__.__pk__[0].name),
-				self.__obj_name__,
+				self.__stor_name__,
 				"%s__%s" % (self.__owner__.__stor_name__, self.__owner__.__pk__[0].name))
 			values = [getattr(owner, owner.__pk__[0].name)]
 		else:
