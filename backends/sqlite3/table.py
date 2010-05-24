@@ -86,7 +86,7 @@ class Object(object):
 				q, values = self._insert()
 				self.__dict__['__saved__'] = True
 
-			print q, values
+#			print q, values
 			autoid = Storage.__instance__.execute(q, values)
 
 			if self.__pk__[0].autoincrement:

@@ -141,25 +141,35 @@ class ReferenceSet(Field):
 				o2m: query remote object with local key to know which are related
 				m2m: query join table to get remote object ids
 		"""
-		print 'RefSet::get()', self, self.__dict__, owner, owner.__dict__, self.sibling
+#		print 'RefSet::get()', self, self.__dict__, owner, owner.__dict__, self.sibling
+		print 'RefSet::get()', self, self.sibling, self.__obj_name__
+		print owner, self.remote
 
-		if isinstance(self.sibling, ReferenceSet):
-			q = ''
+		if isinstance(self.sibling, fields.ReferenceSet):
+			q = "SELECT %s FROM %s WHERE %s = ?" % \
+				("%s__%s" % (self.sibling.__owner__.__stor_name__, self.sibling.__owner__.__pk__[0].name),
+				self.__obj_name__,
+				"%s__%s" % (self.__owner__.__stor_name__, self.__owner__.__pk__[0].name))
+			values = [getattr(owner, owner.__pk__[0].name)]
 		else:
 			q = "SELECT %s FROM %s WHERE %s = ?" % \
 				(self.remote[0].__pk__[0].name, self.remote[0].__stor_name__, self.remote[1])
 			values = [getattr(owner, owner.__pk__[0].name)]
 
+#		print q, values
 		#NOTE: row is a sqlite3.Row object
-		items = [Ghost(None, self.remote[1], self.remote[0], (row[0])) for row in Storage.__instance__.query(q, values)]
+		rows = Storage.__instance__.query(q, values)
+#		print rows
+		items = [Ghost(None, self.remote[1], self.remote[0], {self.remote[0].__pk__[0].name: row[0]}) for row in rows]
 #		o2m_RefList
 		seq = self.default()
-		print 'OO', self.__owner__, type(self.__owner__), owner, type(owner)
+#		print 'OO', self.__owner__, type(self.__owner__), owner, type(owner)
 		seq.__owner__  = owner
 		seq.__name__   = self.name
 		seq.__target__ = self.remote
+#		print seq, type(seq), items
 
-		seq.extend(items)
+		seq.__extend__(items)
 		return [seq]
 
 	def sql_def(self):
