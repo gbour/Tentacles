@@ -1,4 +1,4 @@
-
+# -*- coding: utf8 -*-
 from tentacles          import Storage
 #from tentacles.lazy     import Ghost
 
@@ -32,6 +32,7 @@ class RefList(object):
 		print 'rem:', self.__items__, self.__added__, value
 		self.__items__.remove(value) # raise ValueError if not found
 		if value in self.__added__:
+			print 'found in added'
 			self.__added__.remove(value)
 		else:
 			self.__removed__.append(value)
@@ -68,8 +69,12 @@ class RefList(object):
 		raise Exception('NoOp')
 
 	def __extend__(self, seq):
-		for item in seq:
-			self.__append__(item)
+		"""Private extend.
+		
+			May not be called by external program
+			bypass «changes tracking» mechanism
+		"""
+		self.__items__.extend(seq)
 
 	def extend(self, seq):
 		for item in seq:

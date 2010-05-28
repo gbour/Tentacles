@@ -208,8 +208,10 @@ class Object(object):
 					print refset, type(refset)
 					refset.__remove__(self)
 				
-				refset = getattr(value, fld.remote[1])
-				refset.__append__(self)
+				# we can set None as new value
+				if value is not None:
+					refset = getattr(value, fld.remote[1])
+					refset.__append__(self)
 
 				self.__changes__[key] = value
 
