@@ -32,7 +32,7 @@ class Ghost(object):
 	def __eq__(self, other):
 		from tentacles.table  import Object
 		if isinstance(other, Object):
-			print 'Gost::eq', other, self, other.__class__, self.__pks__.values()[0], getattr(other, other.__pk__[0].name)
+#			print 'Gost::eq', other, self, other.__class__, self.__pks__.values()[0], getattr(other, other.__pk__[0].name)
 			return other.__class__ == self.__target__ and self.__pks__.values()[0] == getattr(other, other.__pk__[0].name)
 			
 			

@@ -1,5 +1,5 @@
 # -*- coding: utf8 -*-
-import sys, types, inspect
+import sys, types, inspect, weakref
 from odict import odict
 from tentacles          import Storage
 from tentacles.fields   import Field, Reference, ReferenceSet
@@ -30,6 +30,7 @@ class MetaObject(type):
 		dct['__fields__'] = fields
 		dct['__pk__']     = pk
 		dct['__refs__']   = []
+		dct['__cache__']  = weakref.WeakValueDictionary()
 
 		klass = type.__new__(cls, name, bases, dct)
 
@@ -91,6 +92,9 @@ class Object(object):
 	__pk__          = []
 	# list of references fields
 	__refs__        = []
+	# instances currently in memory : created in metaobject
+	#__cache__       = weakref.WeakValueDictionary()
+
 
 	@classmethod
 	def __inherit__(cls, database):
@@ -175,7 +179,7 @@ class Object(object):
 				. if False, we don't notice this as a new value change. Used when loading
 					object from database
 		"""
-		print 'SETATTR', key, value, type(value), propchange
+#		print 'SETATTR', key, value, type(value), propchange
 		# check field value
 		if not key in self.__fields__:
 			raise Exception('Unknown field %s' % key)
@@ -201,8 +205,8 @@ class Object(object):
 		# setting a Reference value => must update sibling ReferenceSet
 			elif isinstance(fld, Reference):
 				# update oldref
-				print 'is ref'
 				oldref = getattr(self, key)
+				print 'oldref=', oldref
 				if oldref:
 					refset = getattr(oldref, fld.remote[1])
 					print refset, type(refset)

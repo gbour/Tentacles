@@ -85,7 +85,10 @@ class RefList(object):
 
 		from tentacles.lazy import Ghost
 		if isinstance(item, Ghost):
-			item = item.load()[0]
+			print 'PRELOAD=', item
+			item = item.load()
+			print 'LOAD=', item
+			item = item[0]
 			self.__items__[num] = item
 
 		return item

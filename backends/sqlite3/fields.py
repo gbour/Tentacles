@@ -90,6 +90,9 @@ class Reference(Field):
 		return q
 
 	def serialize(self, value):
+		if value is None:
+			return None
+
 		return getattr(value, value.__pk__[0].name)
 
 
