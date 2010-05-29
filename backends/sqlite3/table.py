@@ -79,18 +79,23 @@ class Object(object):
 #		rels   = filter(lambda x: isinstance(x, ReferenceList), self.__changes__.values())
 #		print '!!',self.__table_name__, self.__changes__, fields, rels
 		
+		cache = False
 		if len(self.__changes__) > 0:
 			if self.__saved__:
 				q, values = self._update()
 			else:
 				q, values = self._insert()
 				self.__dict__['__saved__'] = True
+				cache = True
 
 #			print q, values
 			autoid = Storage.__instance__.execute(q, values)
 
 			if self.__pk__[0].autoincrement:
 				setattr(self, self.__pk__[0].name, autoid)
+
+			if cache:
+				self.__cache__[getattr(self, self.__pk__[0].name)] = self
 
 #		print 'refs=', self, self.__refs__
 		for refdef in self.__refs__:
@@ -163,6 +168,13 @@ class Object(object):
 
 	@classmethod
 	def get(cls, lazy=True, owner=None, **kwargs):
+		# get from cache
+		if cls.__pk__[0].name in kwargs and \
+			kwargs[cls.__pk__[0].name] in cls.__cache__:
+			print 'found in cache'
+			return [cls.__cache__[kwargs[cls.__pk__[0].name]]]
+	
+		print 'not found in cache'
 #		print 'GET', cls, kwargs
 		values = []
 		q      = "SELECT * FROM %s WHERE " % cls.__stor_name__
@@ -186,18 +198,25 @@ class Object(object):
 				else:
 					value = item[name]
 					if isinstance(fld, Reference):
-						value = Ghost(obj, fld, fld.remote[0], {fld.remote[0].__pk__[0].name: value})
+						# get from cache
+						print dict(fld.remote[0].__cache__), value
+						if value in fld.remote[0].__cache__:
+							print 'found in cache'
+							value = fld.remote[0].__cache__[value]
+						else:
+							value = Ghost(obj, fld, fld.remote[0], {fld.remote[0].__pk__[0].name: value})
 					
 #				obj.__values__[name] = item[name]
 				obj.__setattr__(name, value, propchange=False)
 				if fld.pk:
 					obj.__origin__[name] = item[name]
 
-#			obj.__dict__['__saved__'] = True
-#			obj.__changes__.clear()
-#			obj.__dict__['__changed__'] = False
+			obj.__dict__['__saved__'] = True
+			obj.__changes__.clear()
+			obj.__dict__['__changed__'] = False
 			obj.__reset__()
 
+			cls.__cache__[getattr(obj, cls.__pk__[0].name)] = obj
 			res.append(obj)
 
 		return res
