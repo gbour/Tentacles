@@ -206,9 +206,10 @@ class Object(object):
 			elif isinstance(fld, Reference):
 				# update oldref
 				oldref = getattr(self, key)
-				print 'oldref=', oldref
+				print 'oldref=', oldref, fld, fld.remote[1]
 				if oldref:
 					refset = getattr(oldref, fld.remote[1])
+					print 'refset=', refset
 					print refset, type(refset)
 					refset.__remove__(self)
 				

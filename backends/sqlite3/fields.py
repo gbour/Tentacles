@@ -137,7 +137,7 @@ class ReferenceSet(Field):
 				(Object,), dct)
 
 
-	def get(self, owner=None, **kwargs):
+	def get(self, owner=None, cache_only=False, **kwargs):
 		"""Get relational datas
 
 			2 cases:
