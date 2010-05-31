@@ -18,10 +18,6 @@ class Object(object):
 
 			q += " " + fld.sql_def()
 
-#			if issubclass(fld.__class__, Reference):
-#				q += ",\n"
-#				continue
-
 			if len(cls.__pk__) == 1 and fld.pk:
 				q += " PRIMARY KEY"
 			if fld.unique:
@@ -44,19 +40,7 @@ class Object(object):
 			for pk in cls.__pk__:
 				q += pk.name + ', '
 			q = q[:-2] + '),\n'
-			
-#		if hasattr(cls, '__refs__'):
-#		    for table, refs in cls.__refs__.iteritems():
-#		        if len(refs) < 2:
-#		            continue
-#		        
-#		        q += ' FOREIGN KEY ('
-#		        for local, remote in refs:
-#		            q += "%s, " % local.name
-#		        q = q[:-2] + ') REFERENCES %s (' % table.__table_name__
-#		        for local, remote in refs:
-#		            q += "%s, " % remote.name
-#		        q = q[:-2] + '),\n'
+
 		q = q[:-2] + '\n)'
 		return q
 
@@ -66,19 +50,11 @@ class Object(object):
 
 		self.__dict__['__locked__'] = True
 		# check references
-#		print 'SAVE>', self
 		for refdef in self.__refs__:
 			refval = getattr(self, refdef.name)
-#			print 'Zzz.', refdef, refval, type(refval)
 			if refval is not None and not refval.saved():
-#			if refval and not isinstance(refval, ReferenceList) and not refval.saved():
-#				print '  . saving'
 				refval.save()
 
-#		fields = filter(lambda x: not isinstance(x, ReferenceList), self.__changes__.values())
-#		rels   = filter(lambda x: isinstance(x, ReferenceList), self.__changes__.values())
-#		print '!!',self.__table_name__, self.__changes__, fields, rels
-		
 		cache = False
 		if len(self.__changes__) > 0:
 			if self.__saved__:
@@ -88,7 +64,6 @@ class Object(object):
 				self.__dict__['__saved__'] = True
 				cache = True
 
-#			print q, values
 			autoid = Storage.__instance__.execute(q, values)
 
 			if self.__pk__[0].autoincrement:
@@ -97,27 +72,16 @@ class Object(object):
 			if cache:
 				self.__cache__[getattr(self, self.__pk__[0].name)] = self
 
-#		print 'refs=', self, self.__refs__
 		for refdef in self.__refs__:
 			refval = getattr(self, refdef.name)
-#			print ' .. ', refdef, refval, type(refval)
-#			if refval:
-#				print '  haschanged=', refval.has_changed()
 			if refval and refval.has_changed():
-#			if refval and not isinstance(refval, ReferenceList) and not refval.saved():
-#				print 'save', refval, type(refval)
 				refval.save()
 
 			if refdef.name in self.__origin__:
 				if self.__origin__[refdef.name]:
-#					print 'save old', self.__origin__[refdef.name]
 					self.__origin__[refdef.name].save()
 				self.__origin__[refdef.name] = refval
 
-#		if len(rels) > 0:
-#			for rel in rels:
-#				rel.save()
-			
 		self.__changes__.clear()
 		self.__dict__['__changed__'] = False
 		self.__dict__['__locked__']  = False
@@ -126,7 +90,6 @@ class Object(object):
 		values = []
 		q = 'INSERT INTO %s VALUES(' % self.__stor_name__
 		for name, fld in self.__fields__.iteritems():
-#			if fld.__hidden__:
 			if isinstance(fld, ReferenceSet):
 				continue
 
@@ -136,8 +99,6 @@ class Object(object):
 				value = getattr(value, value.__pk__[0].name)
 
 			# check if it is ok for sqlite
-#			if value is None:
-#			    value = 'NULL'
 			values.append(value)
 		q = q[:-2] + ')'
 
@@ -148,14 +109,9 @@ class Object(object):
 		q = 'UPDATE %s SET ' % self.__stor_name__
 
 		for name, value in self.__changes__.iteritems():
-#			if isinstance(value, ReferenceList):
-#				continue
-
 			q += "%s = ?, " % name
-
-#			if isinstance(self.__fields__[name], Reference):
-#				value = getattr(value, value.__pk__[0].name)
 			values.append(self.__fields__[name].serialize(value))
+
 		q = q[:-2] + ' WHERE '
 
 		for pk in self.__pk__:
@@ -171,14 +127,11 @@ class Object(object):
 		# get from cache
 		if cls.__pk__[0].name in kwargs and \
 			kwargs[cls.__pk__[0].name] in cls.__cache__:
-			print 'found in cache'
 			return [cls.__cache__[kwargs[cls.__pk__[0].name]]]
 	
-		print 'not found in cache'
 		if cache_only:
 			return None
 
-#		print 'GET', cls, kwargs
 		values = []
 		q      = "SELECT * FROM %s WHERE " % cls.__stor_name__
 
@@ -194,22 +147,17 @@ class Object(object):
 			obj.__init__()
 
 			for name, fld in obj.__fields__.iteritems():
-#				if isinstance(fld, ReferenceSet):
-#					continue
 				if isinstance(fld, ReferenceSet):
 					value = Ghost(obj, fld, fld.remote[0], {fld.remote[0].__pk__[0].name: fld.default()})
 				else:
 					value = item[name]
 					if isinstance(fld, Reference):
 						# get from cache
-						print dict(fld.remote[0].__cache__), value
 						if value in fld.remote[0].__cache__:
-							print 'found in cache'
 							value = fld.remote[0].__cache__[value]
 						else:
 							value = Ghost(obj, fld, fld.remote[0], {fld.remote[0].__pk__[0].name: value})
 					
-#				obj.__values__[name] = item[name]
 				obj.__setattr__(name, value, propchange=False)
 				if fld.pk:
 					obj.__origin__[name] = item[name]

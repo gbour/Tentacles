@@ -1,7 +1,6 @@
 
 import sys, re, inspect, types
 
-REFORDER = 0
 
 class Uri(object):
 	def __init__(self, raw):
@@ -9,6 +8,7 @@ class Uri(object):
 	
 		for k, v in m.groupdict().iteritems():
 			setattr(self, k, v)
+
 
 class Storage(object):
 	__instance__  = None
@@ -41,7 +41,6 @@ class Storage(object):
 		# call backend init method
 		types.MethodType(backend.__init__.im_func, self)(self.uri)
 
-
 	@classmethod
 	def set_context(cls, name):
 		@classmethod
@@ -65,45 +64,3 @@ class Storage(object):
 
 		if cls.__instance__:
 			obj.__inherit__(cls.__instance__)
-
-		# create extra tables
-		# NOTE: delete cls.__refs__ to prevent infinite loop
-#		refs = cls.__refs__
-#		cls.__refs__ = []
-#		for ref in refs:
-#			cls.create_ref_table(ref)
-
-#	@classmethod
-#	def register_reference(cls, ref):
-#		cls.__refs__.append(ref)
-
-#	@classmethod
-#	def create_ref_table(cls, ref):
-#		import new
-#		from tentacles import Table
-#		from tentacles.fields import Reference
-#		
-#		global REFORDER
-#		REFORDER += 1
-
-#		dct = {
-#			'__table_name__': "join%03d__%s__%s" % \
-#				(REFORDER, ref.__owner__.__table_name__, ref.remote.__table_name__),
-#			'__refs__': {ref.__owner__: [], ref.remote: []}
-#		}
-#		
-#		for pk in ref.__owner__.__pk__:
-#		    dct["%s__%s" % (ref.__owner__.__table_name__, pk.name)] = Reference(ref.__owner__, primary_key=True)
-#		    dct['__refs__'][ref.__owner__].append((
-#		        dct["%s__%s" % (ref.__owner__.__table_name__, pk.name)],
-#		        pk))
-#		for pk in ref.remote.__pk__:
-#		    dct["%s__%s" % (ref.remote.__table_name__, pk.name)]    = Reference(ref.remote, primary_key=True)
-#		    dct['__refs__'][ref.remote].append((
-#		        dct["%s__%s" % (ref.remote.__table_name__, pk.name)],
-#		        pk))
-
-#		r = new.classobj('TableRef%03d__%s__%s' % (REFORDER, ref.__owner__.__name__, ref.remote.__name__), (Table,), dct)
-#		ref.remote = r # owner
-
-
