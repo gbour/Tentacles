@@ -1,9 +1,9 @@
 # -*- coding: utf8 -*-
 from tentacles          import Storage
-#from tentacles.lazy     import Ghost
+
 
 class RefList(object):
-	def __init__(self): #, owner, name, target):
+	def __init__(self):
 #		self.__owner__    = owner
 #		self.__name__     = name
 #		self.__target__   = target                 # (object instance, fieldname) tuple
@@ -23,16 +23,13 @@ class RefList(object):
 			self.__removed__.remove(value)
 		else:
 			self.__added__.append(value)
-#			print type(self.__owner__), dir(self.__owner__)
 			self.__owner__.__dict__['__changed__'] = True
 
 		return True
 
 	def __remove__(self, value):
-#		print 'rem:', self.__items__, self.__added__, value
 		self.__items__.remove(value) # raise ValueError if not found
 		if value in self.__added__:
-			print 'found in added'
 			self.__added__.remove(value)
 		else:
 			self.__removed__.append(value)
@@ -85,13 +82,11 @@ class RefList(object):
 
 		from tentacles.lazy import Ghost
 		if isinstance(item, Ghost):
-#			print 'PRELOAD=', item
-			item = item.load()
-#			print 'LOAD=', item
-			item = item[0]
+			item = item.load()[0]
 			self.__items__[num] = item
 
 		return item
+
 
 class o2m_RefList(RefList):
 	"""
@@ -112,7 +107,6 @@ class o2m_RefList(RefList):
 		setattr(value, self.__target__[1], None)
 
 	def save(self):
-#		print 'o2m::SAVE'
 		for obj in self.__added__:
 			obj.save()
 
@@ -143,13 +137,11 @@ class m2m_RefList(RefList):
 	def __delitem__(self, i):
 		value = super(m2m_RefList, self).__delitem__(i)
 
-		print self.__target__, value
 		from tentacles.lazy import Ghost
 		if isinstance(value, Ghost):
 			value = value.load()#cache_only=True)
 			if value is not None:
 				value = value[0]
-			print 'value=', value
 
 		if value is not None:
 			getattr(value, self.__target__[1]).__remove__(self.__owner__)
@@ -158,22 +150,17 @@ class m2m_RefList(RefList):
 		return True
 		
 	def save(self):
-#		print 'm2m::save', self.__owner__, self.__name__, self.reverse
 		for obj in self.__added__:
-#			print '  .', obj
 			obj.save()
 
 		for obj in self.__removed__:
-#			print obj
 			obj.save()
 
-#		print 'reverse=', self.reverse
 		if not self.reverse:
 			fld = self.__owner__.__fields__[self.__name__]
 			q = "INSERT INTO %s VALUES (?, ?)" % fld.__stor_name__
 			for obj in self.__added__:
 				v = [getattr(self.__owner__, self.__owner__.__pk__[0].name), getattr(obj, obj.__pk__[0].name)]
-#				print q, v
 				Storage.__instance__.execute(q, v)
 
 			q = "DELETE FROM %s WHERE %s__%s = ? AND %s__%s  = ?" % \
@@ -182,12 +169,8 @@ class m2m_RefList(RefList):
 
 			for obj in self.__removed__:
 				v = [getattr(self.__owner__, self.__owner__.__pk__[0].name), getattr(obj, obj.__pk__[0].name)]
-#				print q, v
 				Storage.__instance__.execute(q, v)
 
-
-
-#		print 'STORAGE=', dir(Storage.__instance__)
 		del self.__added__[:]
 		del self.__removed__[:]
 

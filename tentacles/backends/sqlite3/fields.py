@@ -25,41 +25,34 @@ class Field(object):
 
 			Replace lack of inheritance
 		"""
-#		print 'Field::init', self
 		pass
-	
+
+
 class Integer(Field):
 	sql_type = 'INTEGER'
 	
 	def __init__(self):
 		print 'SQINIT'
 
-#	def sql_def(self):
-#		# generic SQL definition
-#		q = "%s INTEGER" % self.name
-#		if self.pk:
-#		   q += " PRIMARY KEY"
-
-#		return q
-		
-#	def sql_name(self):
-#		return 'ZZ'
 
 class String(Field):
 	sql_type = 'TEXT'
 	
 	def sql_protect(self, value):
 		return '"%s"' % value
-		
+
+
 class Binary(Field):
 	sql_type = 'BLOB'
-	
+
+
 class Boolean(Integer):
 	sql_type = 'INTEGER'
 	
 	def sql_protect(self, value):
 		return '1' if value else '0'
-	
+
+
 class Datetime(String):
 	sql_type = 'TEXT'
 	
@@ -70,7 +63,8 @@ class Datetime(String):
 			dt = datetime.now()
 			
 		return dt.strftime("\"%Y/%m/%d %H:%M:%S\"")
-		
+
+
 class Reference(Field):
 	def sql_def(self):
 		q = self.name
@@ -103,8 +97,6 @@ class ReferenceSet(Field):
 	def __backend_init__(self):
 		"""We instanciate join table
 		"""
-#		print '>> backend::init=', self, self.reverse, self.sibling, self.remote
-#		print self, dir(self)
 		if not isinstance(self.sibling, fields.ReferenceSet) or self.reverse:
 			return
 
@@ -119,7 +111,6 @@ class ReferenceSet(Field):
 			'__stor_name__': self.__stor_name__,
 			'__refs__': {self.__owner__: [], self.remote: []}
 		}
-
 
 		for pk in self.__owner__.__pk__:
 			r = fields.Reference(self.__owner__, pk=True)
@@ -136,7 +127,6 @@ class ReferenceSet(Field):
 			join = new.classobj(self.__stor_name__[0].upper() + self.__stor_name__[1:], 
 				(Object,), dct)
 
-
 	def get(self, owner=None, cache_only=False, **kwargs):
 		"""Get relational datas
 
@@ -144,10 +134,6 @@ class ReferenceSet(Field):
 				o2m: query remote object with local key to know which are related
 				m2m: query join table to get remote object ids
 		"""
-#		print 'RefSet::get()', self, self.__dict__, owner, owner.__dict__, self.sibling
-#		print 'RefSet::get()', self, self.sibling, self.__stor_name__
-#		print owner, self.remote, self.reverse
-
 		if isinstance(self.sibling, fields.ReferenceSet):
 			q = "SELECT %s FROM %s WHERE %s = ?" % \
 				("%s__%s" % (self.sibling.__owner__.__stor_name__, self.sibling.__owner__.__pk__[0].name),
@@ -159,18 +145,14 @@ class ReferenceSet(Field):
 				(self.remote[0].__pk__[0].name, self.remote[0].__stor_name__, self.remote[1])
 			values = [getattr(owner, owner.__pk__[0].name)]
 
-#		print q, values
 		#NOTE: row is a sqlite3.Row object
 		rows = Storage.__instance__.query(q, values)
-#		print rows
 		items = [Ghost(None, self.remote[1], self.remote[0], {self.remote[0].__pk__[0].name: row[0]}) for row in rows]
 #		o2m_RefList
 		seq = self.default()
-#		print 'OO', self.__owner__, type(self.__owner__), owner, type(owner)
 		seq.__owner__  = owner
 		seq.__name__   = self.name
 		seq.__target__ = self.remote
-#		print seq, type(seq), items
 
 		seq.__extend__(items)
 		return [seq]
@@ -181,6 +163,3 @@ class ReferenceSet(Field):
 	def serialize(self):
 		raise Exception('May not happend')
 
-#	@classmethod
-#	def init(cls):
-#		print 'RefSet::init', cls, dir(cls)

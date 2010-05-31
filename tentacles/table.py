@@ -1,11 +1,12 @@
 # -*- coding: utf8 -*-
 import sys, types, inspect, weakref
 from odict import odict
+
 from tentacles          import Storage
+from tentacles          import fields as fieldsmod
+from tentacles.lazy     import Ghost
 from tentacles.fields   import Field, Reference, ReferenceSet
 
-from tentacles import fields as fieldsmod
-from tentacles.lazy import Ghost
 
 class MetaObject(type):
 	def __new__(cls, name, bases, dct):
@@ -35,7 +36,6 @@ class MetaObject(type):
 		klass = type.__new__(cls, name, bases, dct)
 
 		for fld in fields.itervalues():
-#			print 'powned', fld
 			fld.__owner__ = klass
 
 			if isinstance(fld, Reference) and not fld.__auto__:
@@ -45,7 +45,7 @@ class MetaObject(type):
 					siblname   = "%s__%s" % (name, fld.name)
 					fld.remote = (fld.remote[0], siblname)
 
-				ref = ReferenceSet(klass, name=fld.name, sibling=fld, reverse=True) #fieldname=fld.name, reverse=True, peer=fld)
+				ref = ReferenceSet(klass, name=fld.name, sibling=fld, reverse=True)
 				ref.name      = siblname
 				ref.__owner__ = fld.remote[0]
 				ref.__inherit__(Storage.__instance__)
@@ -54,11 +54,8 @@ class MetaObject(type):
 				fld.remote[0].__refs__.append(ref)
 
 				fld.sibling = ref
-#				fld.remote.__fields__[ref.name] = ref
-#				fld.peer = ref
 				
 				klass.__refs__.append(fld)
-#				fld.remote.__references__.append(ref)
 			elif isinstance(fld, ReferenceSet):
 				klass.__refs__.append(fld)
 
@@ -68,18 +65,6 @@ class MetaObject(type):
 		fieldsmod.ORDER += 10
 		
 		return klass
-	
-#	def __init__(cls, name, bases, dct):
-#		type.__init__(name, bases, dct)
-
-#		if name == 'Object':
-#			return
-
-#		if cls.__table_name__ is None:
-#			cls.__table_name__ = name.lower()
-
-#		Database.register_table(cls)
-
 
 
 class Object(object):
@@ -108,7 +93,6 @@ class Object(object):
 			if name.startswith('__') or hasattr(cls, name):
 				continue
 
-#			print name, obj
 #			if inspect.isfunction(obj):                                 # static method
 #					obj = types.MethodType(obj, None)
 			if isinstance(obj, types.MethodType):
@@ -179,13 +163,11 @@ class Object(object):
 				. if False, we don't notice this as a new value change. Used when loading
 					object from database
 		"""
-#		print 'SETATTR', key, value, type(value), propchange
 		# check field value
 		if not key in self.__fields__:
 			raise Exception('Unknown field %s' % key)
 
 		#TODO: does not set if values are same
-#		if getattr(self, key) == value:# == self.__dict__[key]:
 		if self.__values__[key] == value:
 			return False
 
@@ -206,11 +188,8 @@ class Object(object):
 			elif isinstance(fld, Reference):
 				# update oldref
 				oldref = getattr(self, key)
-				print 'oldref=', oldref, fld, fld.remote[1]
 				if oldref:
 					refset = getattr(oldref, fld.remote[1])
-					print 'refset=', refset
-					print refset, type(refset)
 					refset.__remove__(self)
 				
 				# we can set None as new value
@@ -222,21 +201,6 @@ class Object(object):
 
 				if key not in self.__origin__:
 					self.__origin__[key] = getattr(self, key)
-#			if fld.reverse:
-#				value.__owner__ = self
-
-#			else:
-#				self.__changes__[key] = value
-
-#				# remove old value
-#				if getattr(self, key) is not None:
-#					old = getattr(self, key)
-#					lst = getattr(old, fld.peer.name)
-#					lst.__remove__(self)
-
-#				# get RelationList 
-#				rellist = getattr(value, fld.peer.name)
-#				rellist.__append__(self)
 			else:
 				self.__changes__[key] = value
 
@@ -256,14 +220,12 @@ class Object(object):
 		"""Apply only to attributes no found in object __dict__
 		"""
 		value = self.__values__[name]
-#		print 'GETATTR', name, value
 
 		if isinstance(value, Ghost):
 			value = value.load()[0]
 			self.__setattr__(name, value, propchange=False)
 
 			#TODO: update peer ReferenceSet when Reference
-
 		return value
 
 	def has_changed(self):
@@ -278,4 +240,4 @@ class Object(object):
 	def __repr__(self):
 		return '%s(%s=%s)' % \
 			(self.__class__.__name__, self.__pk__[0].name, getattr(self, self.__pk__[0].name))
-			
+
