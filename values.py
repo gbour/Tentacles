@@ -29,7 +29,7 @@ class RefList(object):
 		return True
 
 	def __remove__(self, value):
-		print 'rem:', self.__items__, self.__added__, value
+#		print 'rem:', self.__items__, self.__added__, value
 		self.__items__.remove(value) # raise ValueError if not found
 		if value in self.__added__:
 			print 'found in added'
@@ -46,7 +46,7 @@ class RefList(object):
 			self.__added__.remove(value)
 		else:
 			self.__removed__.append(value)
-			self.__owner__.__changed__ = True
+			self.__owner__.__dict__['__changed__'] = True
 
 		return value
 
@@ -85,9 +85,9 @@ class RefList(object):
 
 		from tentacles.lazy import Ghost
 		if isinstance(item, Ghost):
-			print 'PRELOAD=', item
+#			print 'PRELOAD=', item
 			item = item.load()
-			print 'LOAD=', item
+#			print 'LOAD=', item
 			item = item[0]
 			self.__items__[num] = item
 
@@ -143,7 +143,16 @@ class m2m_RefList(RefList):
 	def __delitem__(self, i):
 		value = super(m2m_RefList, self).__delitem__(i)
 
-		getattr(value, self.__target__[1]).__remove__(self.__owner__)
+		print self.__target__, value
+		from tentacles.lazy import Ghost
+		if isinstance(value, Ghost):
+			value = value.load()#cache_only=True)
+			if value is not None:
+				value = value[0]
+			print 'value=', value
+
+		if value is not None:
+			getattr(value, self.__target__[1]).__remove__(self.__owner__)
 
 	def saved(self):
 		return True

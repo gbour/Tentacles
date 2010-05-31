@@ -167,7 +167,7 @@ class Object(object):
 		return q, values
 
 	@classmethod
-	def get(cls, lazy=True, owner=None, **kwargs):
+	def get(cls, lazy=True, owner=None, cache_only=False, **kwargs):
 		# get from cache
 		if cls.__pk__[0].name in kwargs and \
 			kwargs[cls.__pk__[0].name] in cls.__cache__:
@@ -175,6 +175,9 @@ class Object(object):
 			return [cls.__cache__[kwargs[cls.__pk__[0].name]]]
 	
 		print 'not found in cache'
+		if cache_only:
+			return None
+
 #		print 'GET', cls, kwargs
 		values = []
 		q      = "SELECT * FROM %s WHERE " % cls.__stor_name__
