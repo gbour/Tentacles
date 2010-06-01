@@ -55,6 +55,8 @@ class Integer(Field):
 	def __init__(self):
 		print 'SQINIT'
 
+	def sql_protect(self, value):
+		return '%d' % value
 
 class String(Field):
 	sql_type = 'TEXT'
