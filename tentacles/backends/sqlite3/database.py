@@ -20,6 +20,7 @@ __author__  = "Guillaume Bour <guillaume@bour.cc>"
 __version__ = "$Revision$"
 __date__    = "$Date$"
 
+import sqlite3
 from tentacles import Object
 from tentacles.fields import Reference, ReferenceSet
 
@@ -34,6 +35,7 @@ class SQLiteStorage(object):
 		self.cursor = self.db.cursor()
 
 	def execute(self, query, args=()):
+		print query, args
 		res = self.cursor.execute(query, args)
 
 		return self.cursor.lastrowid

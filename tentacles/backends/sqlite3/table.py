@@ -194,3 +194,10 @@ class Object(object):
 
 		return res
 
+	@classmethod
+	def query(cls, query):
+		print query, type(query)
+		
+		import inspect
+		print "src=", inspect.getsource(query)
+		print "zzz=", inspect.getsourcelines(query), '/', inspect.getargspec(query)
