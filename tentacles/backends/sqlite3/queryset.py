@@ -20,8 +20,8 @@ __author__  = "Guillaume Bour <guillaume@bour.cc>"
 __version__ = "$Revision$"
 __date__    = "$Date$"
 
-from database import SQLiteStorage as Storage
-from table    import Object
+import sqlite3
 
-from queryset import QuerySet
+class QuerySet(object):
+	pass
 
