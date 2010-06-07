@@ -36,10 +36,12 @@ class Storage(object):
 	__objects__   = []
 	__refs__      = []
 	__context__   = None
+	
+	__inheritables__ = []
 
 	def __init__(self, uri):
 		self.uri = Uri(uri)
-		
+
 		modname = "tentacles.backends.%s" % self.uri.scheme
 		if not sys.modules.has_key(modname):
 			raise Exception("Unknown '%s' database backend" % self.uri.scheme)
@@ -61,18 +63,21 @@ class Storage(object):
 
 		# call backend init method
 		types.MethodType(backend.__init__.im_func, self)(self.uri)
+		
+		for klass in self.__inheritables__:
+			klass.__inherit__(self)
 
 	@classmethod
 	def set_context(cls, name):
 		@classmethod
 		def _set_context(cls, obj):
-		    obj.__stor_name__ = '%s_%s' % (name, obj.__stor_name__)
+			obj.__stor_name__ = '%s_%s' % (name, obj.__stor_name__)
 		
 		if isinstance(name, types.FunctionType):
-		    cls.__context__ = types.MethodType(name, cls, cls)
+			cls.__context__ = types.MethodType(name, cls, cls)
 		else:
-		    cls.__context__ = _set_context
-	
+			cls.__context__ = _set_context
+
 	@classmethod
 	def register(cls, obj):
 		"""Register objects for this storage.
@@ -85,3 +90,16 @@ class Storage(object):
 
 		if cls.__instance__:
 			obj.__inherit__(cls.__instance__)
+			
+	@classmethod
+	def inherit(cls, klass):
+		"""
+		"""
+		print cls, dir(cls), cls.__instance__
+		if cls.__instance__:
+			return klass.__inherit(cls.__instance__)
+			
+		cls.__inheritables__.append(klass)
+	
+
+
