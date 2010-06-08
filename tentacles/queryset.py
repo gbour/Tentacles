@@ -22,39 +22,11 @@ __date__    = "$Date$"
 
 import sys, inspect, types
 from tentacles import *
+from tentacles.inheritance import Inherit
+
 import byteplay as byte
 
-class MetaQuerySet(type):
-	def __new__(cls, name, bases, dct):
-		klass = type.__new__(cls, name, bases, dct)
-		Storage.inherit(klass)
-
-		return klass
-
-class QuerySet(object):
-	__metaclass__ = MetaQuerySet
-
-	@classmethod
-	def __inherit__(cls, database):
-		"""Inherit attributes and methods from database backend
-		"""
-		modname = "tentacles.backends.%s" % database.uri.scheme
-		exec "import %s" % modname
-		backend = getattr(sys.modules[modname], 'QuerySet')
-		print backend
-
-		for name, obj in inspect.getmembers(backend):
-			if name.startswith('__') or hasattr(cls, name):
-				continue
-
-			if isinstance(obj, types.MethodType):
-				if obj.im_self is not None:                               # class method
-					obj = types.MethodType(obj.im_func, cls)
-				else:
-					obj = obj.im_func
-			
-			setattr(cls, name, obj)
-
+class QuerySet(Inherit):
 	def __init__(self, obj=None, flit=None):
 		"""
 			obj  = object
@@ -80,7 +52,12 @@ class QuerySet(object):
 		return self
 		
 	def __iter__(self):
-		print "GET UTER"
+		print "GET UTER", self.__dict__
+		
+		args, byte = ByteCode.parse(self.flit)
+		self.__query__(byte, args[0])
+		
+		return iter([])
 
 def filter(lep, qset):
 	print qset, issubclass(qset, Object)
@@ -101,7 +78,11 @@ def list(iterator):
 	print "get list from", iterator
 
 """ Instrutions """
-class Op(object):
+class Opcode(object):
+	def build(self, Object, *args, **kwargs):
+		print "build(%s)" % self.__class__.__name__
+
+class Op(Opcode):
 	""" Operations (booleans, numeric)
 	"""
 	def __new__(cls, *args, **kwargs):
@@ -181,7 +162,7 @@ class AddOp(BinaryOp):
 	op = '+'
 
 
-class Variable(object):
+class Variable(Opcode):
 	def __init__(self, name):
 		self.name = name
 		self.attrs = []
@@ -197,7 +178,7 @@ class Variable(object):
 		return s
 
 
-class Value(object):
+class Value(Opcode):
 	def __new__(cls, *args, **kwargs):
 		klass = None
 		if isinstance(args[0], str):
@@ -225,7 +206,7 @@ class ListValue(Value):
 	def __str__(self):
 		return str(self.val)
 
-class Function(object):
+class Function(Opcode):
 	def __init__(self, name, args):
 		self.name   = name
 		self.args   = args
@@ -245,4 +226,76 @@ class Function(object):
 			s += "%s=%s," % (k, v)
 		s += ")"
 		return s
+
+class ByteCode(object):
+	@staticmethod
+	def parse(func):
+		c = byte.Code.from_code(func.func_code)
+
+		# 1st function argument is the "table line"
+		tblarg = c.args[0]
+		stack  = []
+		jumps  = {}
+
+		for line in c.code:
+			if isinstance(line[0], byte.Label): # jump destination
+				for instr in jumps[line[0]]:
+					instr.right = stack.pop()
+					instr.left  = stack.pop()
+					stack.append(instr)
+
+			elif not byte.isopcode(line):
+				continue
+
+			# local variable 
+			if   line[0] == byte.LOAD_FAST:
+				stack.append(Variable(line[1]))
+			# extern (global) variable
+			elif line[0] == byte.LOAD_GLOBAL:
+				stack.append(Variable(line[1]))
+			# object attribute
+			elif line[0] == byte.LOAD_ATTR:
+				stack[-1].setAttribute(line[1])
+			elif line[0] == byte.LOAD_CONST:
+				stack.append(Value(line[1]))
+			elif line[0] == byte.COMPARE_OP:
+				# the comparison operator is in line[1]
+				stack.append(Op(line[1], stack))
+			elif line[0] == byte.UNARY_NOT:
+				stack.append(NotOp('not', stack))
+			elif line[0] == byte.BINARY_ADD:
+				stack.append(AddOp('+', stack))
+
+			# boolean ops
+			elif line[0] == byte.JUMP_IF_TRUE:
+				if not line[1] in jumps:
+					jumps[line[1]] = []
+				jumps[line[1]].insert(0, Op('or'))
+
+			elif line[0] == byte.JUMP_IF_FALSE:
+				if not line[1] in jumps:
+					jumps[line[1]] = []
+				jumps[line[1]].insert(0, Op('and'))
+
+			# 2d param is the number of func args
+			elif line[0] == byte.CALL_FUNCTION:
+				""" line[1] is arguments number:
+							line[1] % 8                     == positional args
+							line[1] - (line[1] << 8) / 2**8 = varargs
+				"""
+				argc    = line[1] % 256
+				varargc = (line[1] - argc) / 256
+
+				func = Function(
+					stack[-1-argc-2*varargc], 
+					stack[-argc-2*varargc:len(stack)-2*varargc]
+				)
+
+				for i in xrange(varargc):
+					func.addKWArg(stack[len(stack)-2-2*i], stack[len(stack)-1-2*i])
+
+				del stack[-1-argc-2*varargc:]
+				stack.append(func)
+
+		return c.args, stack.pop()
 
