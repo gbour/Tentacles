@@ -38,6 +38,7 @@ class Storage(object):
 	__context__   = None
 	
 	__inheritables__ = []
+	__inheritems__   = []
 
 	def __init__(self, uri):
 		self.uri = Uri(uri)
@@ -66,6 +67,9 @@ class Storage(object):
 		
 		for klass in self.__inheritables__:
 			klass.__inherit__(self)
+		for klass in self.__inheritems__:
+			klass.__metaclass__.__inherit__(klass, self)
+		del self.__inheritems__[:]
 
 	@classmethod
 	def set_context(cls, name):
@@ -101,5 +105,15 @@ class Storage(object):
 			
 		cls.__inheritables__.append(klass)
 	
+	@classmethod
+	def __inherit__(cls, klass):
+		"""
+		"""
+		if cls.__instance__:
+			return klass.__metaclass__.__inherit__(cls.__instance__)
+			
+		cls.__inheritems__.append(klass)
+	
+
 
 

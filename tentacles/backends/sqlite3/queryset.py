@@ -23,5 +23,52 @@ __date__    = "$Date$"
 import sqlite3
 
 class QuerySet(object):
-	pass
+	def __query__(self, opcode, argname):
+		values = []
+		q      = "SELECT * FROM %s WHERE " % self.obj.__stor_name__
 
+		# opcode contains conditional instructions, in the form of virtual opcodes
+		# argname is the name of self.obj
+		opcode.build(self.obj)
+
+		
+#		for k, v in kwargs.iteritems():
+#			q += "%s = ? AND " % k
+#			values.append(v)
+
+#		q = q[:-4]
+
+#		res = []
+#		for item in Storage.__instance__.query(q, values):
+#			obj = object.__new__(cls)
+#			obj.__init__()
+
+#			for name, fld in obj.__fields__.iteritems():
+#				if isinstance(fld, ReferenceSet):
+#					value = Ghost(obj, fld, fld.remote[0], {fld.remote[0].__pk__[0].name: fld.default()})
+#				else:
+#					value = item[name]
+#					if isinstance(fld, Reference):
+#						# get from cache
+#						if value in fld.remote[0].__cache__:
+#							value = fld.remote[0].__cache__[value]
+#						else:
+#							value = Ghost(obj, fld, fld.remote[0], {fld.remote[0].__pk__[0].name: value})
+#					
+#				obj.__setattr__(name, value, propchange=False)
+#				if fld.pk:
+#					obj.__origin__[name] = item[name]
+
+#			obj.__dict__['__saved__'] = True
+#			obj.__changes__.clear()
+#			obj.__dict__['__changed__'] = False
+#			obj.__reset__()
+
+#			cls.__cache__[getattr(obj, cls.__pk__[0].name)] = obj
+#			res.append(obj)
+
+#		return res
+		print q
+
+
+#class Variable(object):
