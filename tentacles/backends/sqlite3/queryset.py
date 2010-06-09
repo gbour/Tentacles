@@ -21,54 +21,115 @@ __version__ = "$Revision$"
 __date__    = "$Date$"
 
 import sqlite3
+from tentacles import Storage as Stor
+import tentacles
 
 class QuerySet(object):
-	def __query__(self, opcode, argname):
-		values = []
-		q      = "SELECT * FROM %s WHERE " % self.obj.__stor_name__
-
+	def __query__(self, opcode, args):
 		# opcode contains conditional instructions, in the form of virtual opcodes
 		# argname is the name of self.obj
-		opcode.build(self.obj)
-
 		
-#		for k, v in kwargs.iteritems():
-#			q += "%s = ? AND " % k
-#			values.append(v)
-
-#		q = q[:-4]
-
-#		res = []
-#		for item in Storage.__instance__.query(q, values):
-#			obj = object.__new__(cls)
-#			obj.__init__()
-
-#			for name, fld in obj.__fields__.iteritems():
-#				if isinstance(fld, ReferenceSet):
-#					value = Ghost(obj, fld, fld.remote[0], {fld.remote[0].__pk__[0].name: fld.default()})
-#				else:
-#					value = item[name]
-#					if isinstance(fld, Reference):
-#						# get from cache
-#						if value in fld.remote[0].__cache__:
-#							value = fld.remote[0].__cache__[value]
-#						else:
-#							value = Ghost(obj, fld, fld.remote[0], {fld.remote[0].__pk__[0].name: value})
-#					
-#				obj.__setattr__(name, value, propchange=False)
-#				if fld.pk:
-#					obj.__origin__[name] = item[name]
-
-#			obj.__dict__['__saved__'] = True
-#			obj.__changes__.clear()
-#			obj.__dict__['__changed__'] = False
-#			obj.__reset__()
-
-#			cls.__cache__[getattr(obj, cls.__pk__[0].name)] = obj
-#			res.append(obj)
-
-#		return res
-		print q
+		# return: (tables, where condition)
+		tables, condition, values = opcode.buildQ(locals={args[0]: self.obj}, globals={})
+		tables = tables.union([self.obj.__stor_name__])
+		
+		q = "SELECT "
+		if self.aggregate == 'len':
+			q += "count(*)"
+		else:
+			q+= "*"
+		
+		q += " FROM %s WHERE %s" % (','.join(tables), condition)
+		if self.slice:
+			q += " LIMIT %d OFFSET %s" % (self.slice.stop-self.slice.start, self.slice.start)
+		print q, values
+		return Stor.__instance__.query(q, values)
 
 
-#class Variable(object):
+class BinaryOp(object):
+	def buildQ(self, locals, globals):
+		tables , left , values  = self.left.buildQ(locals, globals)
+		rtables, right, rvalues = self.right.buildQ(locals, globals)
+		
+		tables = tables.union(rtables)
+		values.extend(rvalues)
+		return tables, "%s %s %s" % (left, self.sqlop, right), values
+		
+class EqOp(object):
+	sqlop = '=='
+	
+class GreaterOp(object):
+	sqlop = '>'
+
+class GreaterEqOp(object):
+	sqlop = '>='
+
+class BoolOp(object):
+	""" false: a boolean operation can be either binary or unary """
+	def buildQ(self, locals, globals):
+		tables , left , values  = self.left.buildQ(locals, globals)
+		rtables, right, rvalues = self.right.buildQ(locals, globals)
+		
+		tables = tables.union(rtables)
+		values.extend(rvalues)
+		return tables, "%s %s %s" % (left, self.sqlop, right), values
+
+class AndOp(object):
+	sqlop = "AND"
+
+class InOp(object):
+	sqlop = "IN"
+
+class Variable(object):
+	def buildQ(self, locals, globals):
+		if self.name not in locals:
+			raise Exception("Parser::Variable= %s variable not set" % self.name)
+
+		obj = locals[self.name]
+		q   = obj.__stor_name__
+		if len(self.attrs) > 0 and self.attrs[0] not in obj.__fields__:
+			raise Exception("object %s has no %s attribute" % (obj, self.attrs[0]))
+
+		if len(self.attrs) > 0:
+			q += "." + self.attrs[0]
+
+		return set([obj.__stor_name__]), q, []
+
+
+class Value(object):
+	def buildQ(self, locals, globals):
+		return [], '?', [self.val]
+		
+class ListValue(object):
+	def buildQ(self, locals, globals):
+		print self.val
+		return [], "(%s)" % ','.join(['?' for x in self.val]), self.val
+
+
+class Function(object):
+	def buildQ(self, locals, globals):
+		print "function:: buildQ=", self.name, ':', self.args
+		
+		if self.name == "re.match" or True:
+			# LIKE
+			if len(self.args) != 2:
+				raise Exception()
+				
+			if not isinstance(self.args[0], tentacles.queryset.StrValue):
+				raise Exception()
+				
+			# many more complex
+			like = self.args[0].val
+			like = like.replace(".*", "%")
+			like = like.replace(".", "_")
+			print "like=", like
+			
+			tables , q, values  = self.args[1].buildQ(locals, globals)
+			values.append(like)
+			q += " LIKE ?"
+		
+		else:
+			raise Exception()
+
+		return tables, q, values
+

@@ -25,6 +25,7 @@ import sys, re, inspect, types
 
 class Uri(object):
 	def __init__(self, raw):
+		print "raw=",raw
 		m = re.match('^(?P<scheme>\w+):(//((?P<username>[\w]+):(?P<password>[\w]+)@)?(?P<host>[\w.]+)(?P<port>\d+)?/)?(?P<db>[\w:/.]+)', raw, re.U|re.L)
 	
 		for k, v in m.groupdict().iteritems():
@@ -41,6 +42,9 @@ class Storage(object):
 	__inheritems__   = []
 
 	def __init__(self, uri):
+		import traceback
+		traceback.print_stack()
+		print uri
 		self.uri = Uri(uri)
 
 		modname = "tentacles.backends.%s" % self.uri.scheme
@@ -51,7 +55,10 @@ class Storage(object):
 		if not hasattr(sys.modules[modname], 'Storage'):
 			raise Exception("Unknown '%s' storage backend" % self.uri.scheme)
 
+#		print modname, sys.modules.keys()
+		print dir(sys.modules[modname]), sys.modules[modname].Storage
 		backend = getattr(sys.modules[modname], 'Storage')
+#		print inspect.getmembers(backend)
 		for name, obj in inspect.getmembers(backend):
 			if name.startswith('__') or hasattr(self, name):
 				continue
@@ -63,6 +70,7 @@ class Storage(object):
 		self.__class__.__instance__ = self
 
 		# call backend init method
+#		print "banckend=", modname, backend
 		types.MethodType(backend.__init__.im_func, self)(self.uri)
 		
 		for klass in self.__inheritables__:

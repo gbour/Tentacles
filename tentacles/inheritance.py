@@ -44,9 +44,10 @@ class MetaInherit(type):
 
 		backend = getattr(sys.modules[modname], klass.__name__)
 		for name, obj in inspect.getmembers(backend):
-			if hasattr(klass, name):
+			if hasattr(klass, name) and name not in klass.__override__:
 				continue
 
+			print "  .", name
 #			print obj, obj.im_func, isinstance(obj, types.MethodType)
 			# instance method. we get the underlying function
 			if isinstance(obj, types.MethodType):
@@ -54,9 +55,10 @@ class MetaInherit(type):
 				obj = obj.im_func
 			setattr(klass, name, obj)
 
-		print klass, klass.__dict__
+#		print klass, klass.__dict__
 		return True
 
 
 class Inherit(object):
 	__metaclass__ = MetaInherit
+	__override__  = ()

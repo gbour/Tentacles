@@ -22,6 +22,7 @@ __date__    = "$Date$"
 
 import sys, inspect, types
 from tentacles import *
+from tentacles.fields import ReferenceSet, Reference
 from tentacles.inheritance import Inherit
 
 import byteplay as byte
@@ -35,6 +36,7 @@ class QuerySet(Inherit):
 		self.obj   = obj
 		self.flit  = flit
 		self.slice = None
+		self.aggregate = None
 		
 	def setflit(self, flit):
 		self.flit = flit
@@ -43,24 +45,98 @@ class QuerySet(Inherit):
 		"""
 			Either used to get one value (key is integer) or slice (key is slice)
 		"""
-		print "getitem", key, type(key)
+		print "GETITEM"
 		if isinstance(key, slice):
 			self.slice = key
-		else: # str
+		elif isinstance(key, int): # int
 			self.slice = [key, key+1]
+		else:
+			raise(Exception(""))
 			
 		return self
 		
-	def __iter__(self):
-		print "GET UTER", self.__dict__
-		
+	def __len__(self):
+		print "LEN"
+		self.aggregate = 'len'
 		args, byte = ByteCode.parse(self.flit)
-		self.__query__(byte, args[0])
+
+		self._resultset_ = self.__query__(byte, args)
+		self.aggregate = None
+		print self._resultset_[0][0]
+		import traceback; print traceback.print_stack()
+		return self._resultset_[0][0]
+
+	def __iter__(self):
+		print "ITER"
+		args, byte = ByteCode.parse(self.flit)
+#		print byte
+
+		self._resultset_ = self.__query__(byte, args)
+		print "rset=", self._resultset_
+		def __iterator__():
+			print "ITETE"
+			i = 0
+
+			while i < len(self._resultset_):
+				#yield self._resultset_[i]
+				yield self.__initobj__(self._resultset_[i])
+				i += 1
+
+			raise StopIteration
 		
-		return iter([])
+#		return iter(self._resultset_)
+#		return QuerySetIterator(self._resultset_).init()
+#		return __iterator__()
+
+	def __initobj__(self, rset):
+		if rset[self.obj.__pk__[0].name] in self.obj.__cache__:
+#			print "found in cache"
+			return self.obj.__cache__[rset[self.obj.__pk__[0].name]]
+
+		obj = object.__new__(self.obj)
+		obj.__init__()
+
+		for name, fld in obj.__fields__.iteritems():
+			if isinstance(fld, ReferenceSet):
+				value = Ghost(obj, fld, fld.remote[0], {fld.remote[0].__pk__[0].name: fld.default()})
+			else:
+				value = rset[name]
+				if isinstance(fld, Reference):
+					if value in fld.remote[0].__cache__:
+						value = fld.remote[0].__cache__[value]
+					else:
+						value = Ghost(obj, fld, fld.remote[0], {fld.remote[0].__pk__[0].name: value})
+					
+			obj.__setattr__(name, value, propchange=False)
+			if fld.pk:
+				obj.__origin__[name] = rset[name]
+
+		obj.__dict__['__saved__'] = True
+		obj.__changes__.clear()
+		obj.__dict__['__changed__'] = False
+		obj.__reset__()
+
+		self.obj.__cache__[getattr(obj, self.obj.__pk__[0].name)] = obj
+		return obj
+
+
+#class QuerySetIterator(object):
+#	def __init__(self, resultset):
+#		self.resultset = resultset
+#		print self.resultset
+
+#	def init(self):
+#		i = 0
+
+#		while i < len(self.resultset):
+#			yield self.resultset[i]
+#			i += 1
+
+#		raise StopIteration
+
 
 def filter(lep, qset):
-	print qset, issubclass(qset, Object)
+#	print qset, issubclass(qset, Object)
 	if issubclass(qset, Object):
 		qset = QuerySet(qset)
 	qset.setflit(lep)
@@ -74,13 +150,17 @@ def map():
 def reduce():
 	pass
 
-def list(iterator):
-	print "get list from", iterator
+#def list(iterator):
+#	returnprint "get list from", iterator
 
 """ Instrutions """
-class Opcode(object):
-	def build(self, Object, *args, **kwargs):
-		print "build(%s)" % self.__class__.__name__
+class Opcode(Inherit):
+	__override__ = ('buildQ')
+
+	def buildQ(self, *args, **kwargs):
+		print "default buildQ", self
+		return [], None, []
+
 
 class Op(Opcode):
 	""" Operations (booleans, numeric)
@@ -106,6 +186,10 @@ class Op(Opcode):
 			klass = AndOp
 		elif args[0] == '+':
 			klass = AddOp
+		elif args[0] == '>':
+			klass = GreaterOp
+		elif args[0] == '>=':
+			klass = GreaterEqOp
 			
 #		print 'klass=', klass
 		return object.__new__(klass, *args, **kwargs)
@@ -130,7 +214,7 @@ class BinaryOp(Op):
 		self.left  = stack.pop()
 
 	def __str__(self):
-		return "%s %s %s " % (self.left, self.op, self.right)
+		return "%s(%s, %s)" % (self.__class__.__name__, self.left, self.right)
 
 #	def sql(self, *args):
 #		return "%s %s %s " % (self.left.sql(*args), self.sqlop, self.right.sql(*args))
@@ -150,7 +234,7 @@ class BoolOp(Op):
 		self.label = label
 
 	def __str__(self):
-		return "(%s %s %s)" % (self.left, self.op, self.right)
+		return "%s(%s, %s)" % (self.__class__.__name__, self.left, self.right)
 
 class OrOp(BoolOp):
 	op = 'or'
@@ -160,6 +244,11 @@ class AndOp(BoolOp):
 
 class AddOp(BinaryOp):
 	op = '+'
+
+class GreaterOp(BinaryOp):
+	op = '>'
+class GreaterEqOp(BinaryOp):
+	op = '>='
 
 
 class Variable(Opcode):
