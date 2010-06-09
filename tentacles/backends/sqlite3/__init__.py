@@ -23,5 +23,5 @@ __date__    = "$Date$"
 from database import SQLiteStorage as Storage
 from table    import Object
 
-from queryset import QuerySet
+from queryset import *
 
