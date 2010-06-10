@@ -77,6 +77,9 @@ class BoolOp(object):
 class AndOp(object):
 	sqlop = "AND"
 
+class OrOp(object):
+	sqlop = "OR"
+
 class InOp(object):
 	sqlop = "IN"
 
