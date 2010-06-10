@@ -37,6 +37,7 @@ class QuerySet(Inherit):
 		self.flit  = flit
 		self.slice = None
 		self.aggregate = None
+		self._resultset_ = None
 		
 	def setflit(self, flit):
 		self.flit = flit
@@ -45,7 +46,6 @@ class QuerySet(Inherit):
 		"""
 			Either used to get one value (key is integer) or slice (key is slice)
 		"""
-		print "GETITEM"
 		if isinstance(key, slice):
 			self.slice = key
 		elif isinstance(key, int): # int
@@ -56,25 +56,23 @@ class QuerySet(Inherit):
 		return self
 		
 	def __len__(self):
-		print "LEN"
+		if self._resultset_:
+			return len(self._resultset_)
+
 		self.aggregate = 'len'
 		args, byte = ByteCode.parse(self.flit)
 
 		self._resultset_ = self.__query__(byte, args)
 		self.aggregate = None
-		print self._resultset_[0][0]
-		import traceback; print traceback.print_stack()
+
 		return self._resultset_[0][0]
 
 	def __iter__(self):
-		print "ITER"
 		args, byte = ByteCode.parse(self.flit)
 #		print byte
 
 		self._resultset_ = self.__query__(byte, args)
-		print "rset=", self._resultset_
 		def __iterator__():
-			print "ITETE"
 			i = 0
 
 			while i < len(self._resultset_):
@@ -86,7 +84,7 @@ class QuerySet(Inherit):
 		
 #		return iter(self._resultset_)
 #		return QuerySetIterator(self._resultset_).init()
-#		return __iterator__()
+		return __iterator__()
 
 	def __initobj__(self, rset):
 		if rset[self.obj.__pk__[0].name] in self.obj.__cache__:
