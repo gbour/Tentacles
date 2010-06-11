@@ -27,3 +27,4 @@ from table    import Object
 from lazy     import Ghost
 
 import backends
+from queryset import QuerySet

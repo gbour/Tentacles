@@ -135,19 +135,23 @@ class ReferenceSet(Field):
 			'__refs__': {self.__owner__: [], self.remote: []}
 		}
 
+		self.__pk_stor_names__ = {}
 		for pk in self.__owner__.__pk__:
 			r = fields.Reference(self.__owner__, pk=True)
 			r.__auto__ = True
 
+			self.__pk_stor_names__[pk] = "%s__%s" % (self.__owner__.__stor_name__, pk.name)
 			dct["%s__%s" % (self.__owner__.__stor_name__, pk.name)] = r
 
 		for pk in self.sibling.__owner__.__pk__:
 			r = fields.Reference(self.sibling.__owner__, pk=True)
 			r.__auto__ = True
 
+			self.__pk_stor_names__[pk] = "%s__%s" % (self.sibling.__owner__.__stor_name__, pk.name)
 			dct["%s__%s" % (self.sibling.__owner__.__stor_name__, pk.name)] = r
 
-			join = new.classobj(self.__stor_name__[0].upper() + self.__stor_name__[1:], 
+
+		join = new.classobj(self.__stor_name__[0].upper() + self.__stor_name__[1:], 
 				(Object,), dct)
 
 	def get(self, owner=None, cache_only=False, **kwargs):

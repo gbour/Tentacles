@@ -87,6 +87,14 @@ class MetaObject(type):
 		
 		return klass
 
+	def __iter__(self):
+		from tentacles import QuerySet
+		return QuerySet(self).__iter__()
+		
+	def __getitem__(self, key):
+		from tentacles import QuerySet
+		return QuerySet(self).__getitem__(key)
+
 
 class Object(object):
 	__metaclass__   = MetaObject
