@@ -60,18 +60,21 @@ class QuerySet(Inherit):
 			return len(self._resultset_)
 
 		self.aggregate = 'len'
-		args, byte = ByteCode.parse(self.flit)
+		args, byte, globals = ByteCode.parse(self.flit)
 
-		self._resultset_ = self.__query__(byte, args)
+		self._resultset_ = self.__query__(byte, args, globals)
 		self.aggregate = None
 
 		return self._resultset_[0][0]
 
 	def __iter__(self):
-		args, byte = ByteCode.parse(self.flit)
-#		print byte
+		if self.flit:
+			args, byte, globals = ByteCode.parse(self.flit)
+		else:
+			args, byte, globals = ((), None, ())
+		print byte, args, globals
 
-		self._resultset_ = self.__query__(byte, args)
+		self._resultset_ = self.__query__(byte, args, globals)
 		def __iterator__():
 			i = 0
 
@@ -225,6 +228,10 @@ class InOp(BinaryOp):
 	""" in comparison (set of values) """
 	op = 'in'
 
+class NotinOp(BinaryOp):
+	""" in comparison (set of values) """
+	op = 'not in'
+
 class BoolOp(Op):
 	"""
 	"""
@@ -258,7 +265,7 @@ class Variable(Opcode):
 		self.attrs.append(attr)
 
 	def __str__(self):
-		s = str(self.name)
+		s = "Var(%s)" % self.name
 		if len(self.attrs) > 0 :
 			s += '.' + '.'.join(self.attrs)
 
@@ -318,11 +325,13 @@ class ByteCode(object):
 	@staticmethod
 	def parse(func):
 		c = byte.Code.from_code(func.func_code)
+#		print "C vars=", c.args, c.freevars, c.newlocals, c.varargs, c.varkwargs
 
 		# 1st function argument is the "table line"
 		tblarg = c.args[0]
 		stack  = []
 		jumps  = {}
+		globals = []
 
 		for line in c.code:
 			if isinstance(line[0], byte.Label): # jump destination
@@ -340,6 +349,7 @@ class ByteCode(object):
 			# extern (global) variable
 			elif line[0] == byte.LOAD_GLOBAL:
 				stack.append(Variable(line[1]))
+				globals.append(line[1])
 			# object attribute
 			elif line[0] == byte.LOAD_ATTR:
 				stack[-1].setAttribute(line[1])
@@ -384,5 +394,5 @@ class ByteCode(object):
 				del stack[-1-argc-2*varargc:]
 				stack.append(func)
 
-		return c.args, stack.pop()
+		return c.args, stack.pop(), globals
 
