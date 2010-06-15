@@ -114,6 +114,10 @@ class Variable(object):
 		else:
 			raise Exception("Parser::Variable= %s variable not set" % self.name)
 
+		#
+		if self.index is not None:
+			val = val[self.index]
+
 		from tentacles.table import Object, MetaObject
 		if isinstance(val, MetaObject):
 			if (isinstance(operator, tentacles.queryset.InOp) or isinstance(operator, tentacles.queryset.NotinOp)) and pos == 'right':

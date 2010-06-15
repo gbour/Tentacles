@@ -260,14 +260,20 @@ class Variable(Opcode):
 	def __init__(self, name):
 		self.name = name
 		self.attrs = []
+		self.index = None
 
 	def setAttribute(self, attr):
 		self.attrs.append(attr)
+
+	def setIndex(self, index):
+		self.index = index
 
 	def __str__(self):
 		s = "Var(%s)" % self.name
 		if len(self.attrs) > 0 :
 			s += '.' + '.'.join(self.attrs)
+		if self.index is not None:
+			s += "[%d]" % self.index
 
 		return s
 
@@ -355,6 +361,8 @@ class ByteCode(object):
 				stack[-1].setAttribute(line[1])
 			elif line[0] == byte.LOAD_CONST:
 				stack.append(Value(line[1]))
+			elif line[0] == byte.BINARY_SUBSCR:
+				stack[-2].setIndex(stack.pop().val)
 			elif line[0] == byte.COMPARE_OP:
 				# the comparison operator is in line[1]
 				stack.append(Op(line[1], stack))
