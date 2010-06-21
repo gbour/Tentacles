@@ -107,7 +107,10 @@ class RefList(object):
 			self.__items__[num] = item
 
 		return item
-
+		
+	def clear(self)
+		for item in self.__items__.iteritems():
+			self.remove(item)
 
 class o2m_RefList(RefList):
 	"""

@@ -144,6 +144,13 @@ class Object(object):
 		q = q[:-4]
 		return q, values
 
+	def delete(self):
+		print self.__refs__
+		values = [self.__values__[self.__pk__[0].name]]
+		q = "DELETE FROM %s WHERE %s = ?" % (self.__stor_name__, self.__pk__[0].name)
+	
+		Storage.__instance__.execute(q, values)
+
 	@classmethod
 	def get(cls, lazy=True, owner=None, cache_only=False, **kwargs):
 		# get from cache
@@ -201,3 +208,5 @@ class Object(object):
 		import inspect
 		print "src=", inspect.getsource(query)
 		print "zzz=", inspect.getsourcelines(query), '/', inspect.getargspec(query)
+		
+
