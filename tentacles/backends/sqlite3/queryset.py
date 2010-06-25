@@ -33,7 +33,7 @@ class QuerySet(object):
 				globals[name] = getattr(sys.modules['__main__'], name)
 			else:
 				globals[name] = None
-		print "GLOBALS=", globals
+#		print "GLOBALS=", globals
 	
 		# opcode contains conditional instructions, in the form of virtual opcodes
 		# argname is the name of self.obj
@@ -105,7 +105,7 @@ class NotinOp(object):
 
 class Variable(object):
 	def buildQ(self, locals, globals, operator, pos=None):
-		print self, "OP=", operator
+#		print self, "OP=", operator
 	
 		if self.name in locals:
 			val = locals[self.name]
