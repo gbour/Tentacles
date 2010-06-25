@@ -145,11 +145,21 @@ class Object(object):
 		return q, values
 
 	def delete(self):
+		if not self.__saved__:
+			return
+
 		print self.__refs__
+		for refdef in self.__refs__:
+			refval = getattr(self, refdef.name)
+#			print "ref=", refdef, refval
+			refval.clear()
+			refval.save()
+
 		values = [self.__values__[self.__pk__[0].name]]
 		q = "DELETE FROM %s WHERE %s = ?" % (self.__stor_name__, self.__pk__[0].name)
-	
+
 		Storage.__instance__.execute(q, values)
+		self.__dict__['__saved__'] = False
 
 	@classmethod
 	def get(cls, lazy=True, owner=None, cache_only=False, **kwargs):

@@ -219,7 +219,10 @@ class Object(object):
 				oldref = getattr(self, key)
 				if oldref:
 					refset = getattr(oldref, fld.remote[1])
-					refset.__remove__(self)
+					print "self=", self, oldref, refset, type(refset)
+					# if we delete from peer, self is no more in refset
+					if self in refset:
+						refset.__remove__(self)
 				
 				# we can set None as new value
 				if value is not None:

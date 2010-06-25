@@ -108,8 +108,9 @@ class RefList(object):
 
 		return item
 		
-	def clear(self)
-		for item in self.__items__.iteritems():
+	def clear(self):
+		for item in self.__items__:
+			print "clear", item
 			self.remove(item)
 
 class o2m_RefList(RefList):
@@ -171,7 +172,11 @@ class m2m_RefList(RefList):
 			getattr(value, self.__target__[1]).__remove__(self.__owner__)
 
 	def saved(self):
-		return True
+		if self.reverse:
+			return True
+		
+		# TODO: check self.__added__ and self.__removed__
+		return False
 		
 	def save(self):
 		for obj in self.__added__:
