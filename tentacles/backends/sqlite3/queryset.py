@@ -100,6 +100,9 @@ class OrOp(object):
 class InOp(object):
 	sqlop = "IN"
 
+	def buildQ(self, locals, globals, operator, *args, **kwargs):
+		print "IN::buildQ"
+
 class NotinOp(object):
 	sqlop = "NOT IN"
 

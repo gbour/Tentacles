@@ -25,7 +25,7 @@ from tentacles import *
 
 class MetaInherit(type):
 	def __new__(cls, name, bases, dct):
-		print "MetaInherit::new", name
+#		print "MetaInherit::new", name
 		klass = type.__new__(cls, name, bases, dct)
 		Storage.__inherit__(klass)
 
@@ -33,7 +33,7 @@ class MetaInherit(type):
 
 	@staticmethod
 	def __inherit__(klass, storage):
-		print "MetaInherit::inherit", klass
+#		print "MetaInherit::inherit", klass
 		modname = "tentacles.backends.%s" % storage.uri.scheme
 		if not sys.modules.has_key(modname):
 			return False
@@ -47,7 +47,7 @@ class MetaInherit(type):
 			if hasattr(klass, name) and name not in klass.__override__:
 				continue
 
-			print "  .", name
+#			print "  .", name
 #			print obj, obj.im_func, isinstance(obj, types.MethodType)
 			# instance method. we get the underlying function
 			if isinstance(obj, types.MethodType):
