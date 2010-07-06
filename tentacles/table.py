@@ -31,6 +31,7 @@ from tentacles.fields   import Field, Reference, ReferenceSet
 
 class MetaObject(type):
 	def __new__(cls, name, bases, dct):
+		print "MetaObject::", name
 		fields = odict()
 		pk     = []
 

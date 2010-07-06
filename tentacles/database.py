@@ -25,9 +25,9 @@ import sys, re, inspect, types
 
 class Uri(object):
 	def __init__(self, raw):
-		print "raw=",raw
+#		print "raw=",raw
 		m = re.match('^(?P<scheme>\w+):(//((?P<username>[\w]+):(?P<password>[\w]+)@)?(?P<host>[\w.]+)(?P<port>\d+)?/)?(?P<db>[\w:/.]+)', raw, re.U|re.L)
-	
+
 		for k, v in m.groupdict().iteritems():
 			setattr(self, k, v)
 
@@ -42,10 +42,8 @@ class Storage(object):
 	__inheritems__   = []
 
 	def __init__(self, uri):
-		import traceback
-		traceback.print_stack()
-		print uri
 		self.uri = Uri(uri)
+		print self.uri.__dict__
 
 		modname = "tentacles.backends.%s" % self.uri.scheme
 		if not sys.modules.has_key(modname):
