@@ -21,8 +21,9 @@ __version__ = "$Revision$"
 __date__    = "$Date$"
 
 import inspect, types, sys
-from tentacles import Storage
-from tentacles.values import o2m_RefList, m2m_RefList
+
+from tentacles         import Storage
+from tentacles.values  import o2m_RefList, m2m_RefList
 
 ORDER = 10
 
@@ -91,8 +92,8 @@ class Field(object):
 
 
 class Integer(Field):
-	def __init__(self, pk=False, autoincrement=False, *args, **kwargs):
-		super(Integer, self).__init__(pk=pk, *args, **kwargs)
+	def __init__(self, name=None, allow_none=True, pk=False, autoincrement=False, *args, **kwargs):
+		super(Integer, self).__init__(name, allow_none, pk, *args, **kwargs)
 
 		if autoincrement and not pk:
 			raise Exception('only pk can be autoincremented')

@@ -72,10 +72,11 @@ class Object(object):
 
 		self.__dict__['__locked__'] = True
 		# check references
-		for refdef in self.__refs__:
-			refval = getattr(self, refdef.name)
-			if refval is not None and not refval.saved():
-				refval.save()
+		if self.__saved__:
+			for refdef in self.__refs__:
+				refval = getattr(self, refdef.name)
+				if refval is not None and not refval.saved():
+					refval.save()
 
 		cache = False
 		if len(self.__changes__) > 0:
