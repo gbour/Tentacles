@@ -25,7 +25,6 @@ import sys, re, inspect, types
 
 class Uri(object):
 	def __init__(self, raw):
-#		print "raw=",raw
 		m = re.match('^(?P<scheme>\w+):(//((?P<username>[\w]+):(?P<password>[\w]+)@)?(?P<host>[\w.]+)(?P<port>\d+)?/)?(?P<db>[\w:/.]+)', raw, re.U|re.L)
 
 		for k, v in m.groupdict().iteritems():
@@ -43,7 +42,7 @@ class Storage(object):
 
 	def __init__(self, uri):
 		self.uri = Uri(uri)
-		print self.uri.__dict__
+#		print self.uri.__dict__
 
 		modname = "tentacles.backends.%s" % self.uri.scheme
 		if not sys.modules.has_key(modname):
@@ -54,7 +53,7 @@ class Storage(object):
 			raise Exception("Unknown '%s' storage backend" % self.uri.scheme)
 
 #		print modname, sys.modules.keys()
-		print dir(sys.modules[modname]), sys.modules[modname].Storage
+#		print dir(sys.modules[modname]), sys.modules[modname].Storage
 		backend = getattr(sys.modules[modname], 'Storage')
 #		print inspect.getmembers(backend)
 		for name, obj in inspect.getmembers(backend):
@@ -71,6 +70,7 @@ class Storage(object):
 #		print "banckend=", modname, backend
 		types.MethodType(backend.__init__.im_func, self)(self.uri)
 		
+#		print '>>', self.__inheritables__, self.__inheritems__
 		for klass in self.__inheritables__:
 			klass.__inherit__(self)
 		for klass in self.__inheritems__:
@@ -94,26 +94,28 @@ class Storage(object):
 
 			Objects register once themselves at definition time (metaclass.__init__)
 		"""
+#		print "register", obj
 		if cls.__context__:
 		    cls.__context__(obj)
 		cls.__objects__.append(obj)
 
-		if cls.__instance__:
-			obj.__inherit__(cls.__instance__)
-			
+#		if cls.__instance__:
+#			obj.__inherit__(cls.__instance__)
+		cls.inherit(obj)
+
 	@classmethod
 	def inherit(cls, klass):
+		"""Inherit an object instance
 		"""
-		"""
-		print cls, dir(cls), cls.__instance__
+#		print cls, dir(cls), cls.__instance__, klass, type(klass)
 		if cls.__instance__:
-			return klass.__inherit(cls.__instance__)
+			return klass.__inherit__(cls.__instance__)
 			
 		cls.__inheritables__.append(klass)
 	
 	@classmethod
 	def __inherit__(cls, klass):
-		"""
+		"""Inherit an object definition
 		"""
 		if cls.__instance__:
 			return klass.__metaclass__.__inherit__(cls.__instance__)

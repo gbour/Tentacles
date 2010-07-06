@@ -151,6 +151,7 @@ class ReferenceSet(Field):
 			dct["%s__%s" % (self.sibling.__owner__.__stor_name__, pk.name)] = r
 
 
+#		print '>>', self.__stor_name__, dct
 		join = new.classobj(self.__stor_name__[0].upper() + self.__stor_name__[1:], 
 				(Object,), dct)
 

@@ -31,7 +31,7 @@ from tentacles.fields   import Field, Reference, ReferenceSet
 
 class MetaObject(type):
 	def __new__(cls, name, bases, dct):
-		print "MetaObject::", name
+#		print "MetaObject::", name
 		fields = odict()
 		pk     = []
 
@@ -70,7 +70,7 @@ class MetaObject(type):
 				ref = ReferenceSet(klass, name=fld.name, sibling=fld, reverse=True)
 				ref.name      = siblname
 				ref.__owner__ = fld.remote[0]
-				ref.__inherit__(Storage.__instance__)
+#				ref.__inherit__(Storage.__instance__)
 
 				fld.remote[0].__fields__[siblname] = ref
 				fld.remote[0].__refs__.append(ref)
@@ -115,6 +115,8 @@ class Object(object):
 	def __inherit__(cls, database):
 		"""Inherit attributes and methods from database backend
 		"""
+#		print "object inherit::", cls, database, type(cls)
+
 		modname = "tentacles.backends.%s" % database.uri.scheme
 		exec "import %s" % modname
 		backend = getattr(sys.modules[modname], 'Object')
@@ -134,6 +136,7 @@ class Object(object):
 			setattr(cls, name, obj)
 			
 		for fld in cls.__fields__.itervalues():
+#				print "fld=", fld
 				fld.__inherit__(database)
 
 	def __init__(self, *args, **kw):
