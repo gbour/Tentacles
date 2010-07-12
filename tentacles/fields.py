@@ -29,6 +29,8 @@ ORDER = 10
 
 
 class Field(object):
+	basetype = None
+
 	def __inherit__(self, database):
 		"""Inherit attributes and methods from database backend
 		"""
@@ -55,6 +57,7 @@ class Field(object):
 			. name : field name
 			. none : None value allowed
 		"""
+		
 		global ORDER
 		self.__order__ = ORDER
 		ORDER += 1
@@ -69,13 +72,29 @@ class Field(object):
 		self.__hidden__  = False
 		self.autoincrement = False
 
+		self.__default__     = None
 		if 'default' in kwargs:
+			# check if default value match basetype
 			self.__default__   = kwargs['default']
+			if not self.check(self.__default__):
+				raise Exception('default value must be one of', self.basetype)
 		if 'unique' in kwargs:
 			self.unique    = kwargs['unique']
 
 	def check(self, value):
-		pass
+		if self.basetype is None:
+			return True
+
+		# is iterable
+		match = False
+		if hasattr(self.basetype, '__iter__'):
+			for basetype in self.basetype:
+				if isinstance(value, basetype):
+					match = True; break
+		else:
+			match = isinstance(value, self.basetype)
+					
+		return match
 
 	def __str__(self):
 		q = "%s(%s)" % (self.__class__.__name__, self.name)
@@ -95,6 +114,8 @@ class Field(object):
 
 
 class Integer(Field):
+	basetype = int
+
 	def __init__(self, name=None, allow_none=True, pk=False, autoincrement=False, *args, **kwargs):
 		super(Integer, self).__init__(name, allow_none, pk, *args, **kwargs)
 
@@ -104,14 +125,14 @@ class Integer(Field):
 
 
 class String(Field):
-	pass
-
-
-class Binary(Field):
-	pass
+	basetype = (str, unicode)
 
 
 class Boolean(Field):
+	basetype = bool
+
+
+class Binary(Field):
 	pass
 
 
