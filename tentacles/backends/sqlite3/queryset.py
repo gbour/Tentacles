@@ -46,6 +46,7 @@ class QuerySet(object):
 		else:
 			q+= "*"
 
+		print "OPCODE=", opcode, args, self.obj, globals
 		if opcode:
 			tables, condition, values = opcode.buildQ(locals={args[0]: self.obj}, globals=globals, operator=None)
 		else:
@@ -102,6 +103,12 @@ class InOp(object):
 
 	def buildQ(self, locals, globals, operator, *args, **kwargs):
 		print "IN::buildQ"
+		tables , left , values  = self.left.buildQ(locals, globals , self, 'left')
+		rtables, right, rvalues = self.right.buildQ(locals, globals, self, 'right')
+
+		tables = tables.union(rtables)
+		values.extend(rvalues)
+		return tables, "%s %s %s" % (left, self.sqlop, right), values
 
 class NotinOp(object):
 	sqlop = "NOT IN"

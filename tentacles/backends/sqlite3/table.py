@@ -164,6 +164,7 @@ class Object(object):
 
 	@classmethod
 	def get(cls, lazy=True, owner=None, cache_only=False, **kwargs):
+		print "GET"
 		# get from cache
 		if cls.__pk__[0].name in kwargs and \
 			kwargs[cls.__pk__[0].name] in cls.__cache__:
