@@ -115,8 +115,6 @@ class Object(object):
 	def __inherit__(cls, database):
 		"""Inherit attributes and methods from database backend
 		"""
-#		print "object inherit::", cls, database, type(cls)
-
 		modname = "tentacles.backends.%s" % database.uri.scheme
 		exec "import %s" % modname
 		backend = getattr(sys.modules[modname], 'Object')

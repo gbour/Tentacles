@@ -37,6 +37,7 @@ class Ghost(object):
 		kwargs['cache_only'] = cache_only
 		
 		if isinstance(self.__field__, ReferenceSet):
+			print self.__field__, self.__field__.__dict__
 			value = self.__field__.get(**kwargs)
 		else:
 			value = self.__target__.get(**kwargs)

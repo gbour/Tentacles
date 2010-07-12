@@ -120,8 +120,10 @@ class ReferenceSet(Field):
 	def __backend_init__(self):
 		"""We instanciate join table
 		"""
+		print "  . referenceset::backend_init"
 		if not isinstance(self.sibling, fields.ReferenceSet) or self.reverse:
 			return
+		print "  . referenceset::backend_init2"
 
 		global JOIN_COUNT
 		JOIN_COUNT += 1
@@ -152,8 +154,10 @@ class ReferenceSet(Field):
 
 
 #		print '>>', self.__stor_name__, dct
+		print "    plop>"
 		join = new.classobj(self.__stor_name__[0].upper() + self.__stor_name__[1:], 
 				(Object,), dct)
+		print "    plop<"
 
 	def get(self, owner=None, cache_only=False, **kwargs):
 		"""Get relational datas

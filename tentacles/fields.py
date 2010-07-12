@@ -32,11 +32,13 @@ class Field(object):
 	def __inherit__(self, database):
 		"""Inherit attributes and methods from database backend
 		"""
+		print ">> INHERIT", self, type(self)
 		modname = "tentacles.backends.%s.fields" % database.uri.scheme
 		exec "import %s" % modname
 		backend = getattr(sys.modules[modname], self.__class__.__name__)
-
+#		print "  backend=", backend
 		for name, obj in inspect.getmembers(backend):
+#			print "    .",name
 			if hasattr(self, name):
 				continue
 
@@ -45,6 +47,7 @@ class Field(object):
 
 			setattr(self, name, obj)
 		self.__backend_init__()
+		print self.__dict__
 
 	def __init__(self, name=None, allow_none=True, pk=False, **kwargs):
 		"""Instanciate a new Field
