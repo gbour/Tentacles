@@ -185,6 +185,10 @@ class m2m_RefList(RefList):
 		for obj in self.__removed__:
 			obj.save()
 
+#		print "saved ?", self.__owner__, self.__owner__.saved()
+		if not self.__owner__.saved():
+			return
+
 		if not self.reverse:
 			fld = self.__owner__.__fields__[self.__name__]
 			q = "INSERT INTO %s VALUES (?, ?)" % fld.__stor_name__

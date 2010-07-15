@@ -27,7 +27,7 @@ from tentacles          import Storage
 from tentacles          import fields as fieldsmod
 from tentacles.lazy     import Ghost
 from tentacles.fields   import Field, Reference, ReferenceSet
-
+from tentacles.values   import RefList, m2m_RefList
 
 class MetaObject(type):
 	def __new__(cls, name, bases, dct):
@@ -71,6 +71,7 @@ class MetaObject(type):
 				ref.name      = siblname
 				ref.__owner__ = fld.remote[0]
 #				ref.__inherit__(Storage.__instance__)
+				Storage.inherit(ref)
 
 				fld.remote[0].__fields__[siblname] = ref
 				fld.remote[0].__refs__.append(ref)
@@ -211,9 +212,26 @@ class Object(object):
 		# ,normally, ReferenceSet field are set for once at all
 		if propchange:
 			if isinstance(fld, ReferenceSet):
-					value.__owner__  = self
-					value.__name__   = key
-					value.__target__ = fld.remote # tuple Object, fieldname
+					#TODO: must write it in a different way;
+					# ReferenceSet field must have been previously initialized
+					# then we just clear and fill field with our values
+					# (checking value is iterable and items are of the correct type)
+					if not isinstance(value, RefList):
+						print 'plop', key, value, type(value), getattr(self, key), self.__fields__[key]
+						newvalue = self.__fields__[key].default()
+						newvalue.__owner__  = self
+						newvalue.__name__   = key
+						newvalue.__target__ = fld.remote # tuple Object, fieldname						
+						
+						for item in value:
+							print item
+							newvalue.append(item)
+						value = newvalue
+						print value
+					else:
+						value.__owner__  = self
+						value.__name__   = key
+						value.__target__ = fld.remote # tuple Object, fieldname
 
 		# setting a Reference value => must update sibling ReferenceSet
 			elif isinstance(fld, Reference):

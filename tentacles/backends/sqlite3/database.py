@@ -37,6 +37,8 @@ class SQLiteStorage(object):
 	def execute(self, query, args=()):
 		print query, args
 		res = self.cursor.execute(query, args)
+		#TODO: better handling of autocommit option
+		self.db.commit()
 
 		return self.cursor.lastrowid
 

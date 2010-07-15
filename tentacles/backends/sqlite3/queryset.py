@@ -25,7 +25,7 @@ from tentacles import Storage as Stor
 import tentacles
 
 class QuerySet(object):
-	def __query__(self, opcode, args, externvars):
+	def __query__(self, opcode, args, externvars, locals):
 		# we resolve global variables
 		globals = {}
 		for name in externvars:
@@ -33,7 +33,9 @@ class QuerySet(object):
 				globals[name] = getattr(sys.modules['__main__'], name)
 			else:
 				globals[name] = None
-#		print "GLOBALS=", globals
+		
+		globals.update(locals)
+		print "GLOBALS=", globals
 	
 		# opcode contains conditional instructions, in the form of virtual opcodes
 		# argname is the name of self.obj
@@ -46,7 +48,7 @@ class QuerySet(object):
 		else:
 			q+= "*"
 
-		print "OPCODE=", opcode, args, self.obj, globals
+#		print "OPCODE=", opcode, args, self.obj, globals
 		if opcode:
 			tables, condition, values = opcode.buildQ(locals={args[0]: self.obj}, globals=globals, operator=None)
 		else:

@@ -60,21 +60,21 @@ class QuerySet(Inherit):
 			return len(self._resultset_)
 
 		self.aggregate = 'len'
-		args, byte, globals = ByteCode.parse(self.flit)
+		args, byte, globals, locals = ByteCode.parse(self.flit)
 
-		self._resultset_ = self.__query__(byte, args, globals)
+		self._resultset_ = self.__query__(byte, args, globals, locals)
 		self.aggregate = None
 
 		return self._resultset_[0][0]
 
 	def __iter__(self):
 		if self.flit:
-			args, byte, globals = ByteCode.parse(self.flit)
+			args, byte, globals, locals = ByteCode.parse(self.flit)
 		else:
-			args, byte, globals = ((), None, ())
+			args, byte, globals, locals = ((), None, (), {})
 		print byte, args, globals
 
-		self._resultset_ = self.__query__(byte, args, globals)
+		self._resultset_ = self.__query__(byte, args, globals, locals)
 		def __iterator__():
 			i = 0
 
@@ -101,7 +101,7 @@ class QuerySet(Inherit):
 			if isinstance(fld, ReferenceSet):
 				value = Ghost(obj, fld, fld.remote[0], {fld.remote[0].__pk__[0].name: fld.default()})
 			else:
-				value = rset[name]
+				value = fld.sql2py(rset[name])
 				if isinstance(fld, Reference):
 					if value in fld.remote[0].__cache__:
 						value = fld.remote[0].__cache__[value]
@@ -137,7 +137,6 @@ class QuerySet(Inherit):
 
 
 def filter(lep, qset):
-#	print qset, issubclass(qset, Object)
 	if issubclass(qset, Object):
 		qset = QuerySet(qset)
 	qset.setflit(lep)
@@ -332,6 +331,7 @@ class ByteCode(object):
 	def parse(func):
 		c = byte.Code.from_code(func.func_code)
 #		print "C vars=", c.args, c.freevars, c.newlocals, c.varargs, c.varkwargs
+#		print func.func_code.co_varnames, func.func_code.co_freevars, func.func_code.co_cellvars
 
 		# 1st function argument is the "table line"
 		tblarg = c.args[0]
@@ -340,6 +340,7 @@ class ByteCode(object):
 		globals = []
 
 		for line in c.code:
+#			print line
 			if isinstance(line[0], byte.Label): # jump destination
 				for instr in jumps[line[0]]:
 					instr.right = stack.pop()
@@ -354,8 +355,16 @@ class ByteCode(object):
 				stack.append(Variable(line[1]))
 			# extern (global) variable
 			elif line[0] == byte.LOAD_GLOBAL:
+				if line[1] == 'True':
+					stack.append(Value(True))
+				elif line[1] == 'False':
+					stack.append(Value(False))
+				else:
+					stack.append(Variable(line[1]))
+					globals.append(line[1])
+			elif line[0] == byte.LOAD_DEREF:
 				stack.append(Variable(line[1]))
-				globals.append(line[1])
+
 			# object attribute
 			elif line[0] == byte.LOAD_ATTR:
 				stack[-1].setAttribute(line[1])
@@ -401,6 +410,10 @@ class ByteCode(object):
 
 				del stack[-1-argc-2*varargc:]
 				stack.append(func)
+				
+		locals = {}
+		for i in xrange(len(c.freevars)):
+			locals[c.freevars[i]] = func.func_closure[i].cell_contents
 
-		return c.args, stack.pop(), globals
+		return c.args, stack.pop(), globals, locals
 
