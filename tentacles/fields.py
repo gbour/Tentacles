@@ -34,7 +34,6 @@ class Field(object):
 	def __inherit__(self, database):
 		"""Inherit attributes and methods from database backend
 		"""
-		print ">> INHERIT", self, type(self)
 		modname = "tentacles.backends.%s.fields" % database.uri.scheme
 		exec "import %s" % modname
 		backend = getattr(sys.modules[modname], self.__class__.__name__)
@@ -49,7 +48,6 @@ class Field(object):
 
 			setattr(self, name, obj)
 		self.__backend_init__()
-		print self.__dict__
 
 	def __init__(self, name=None, allow_none=True, pk=False, **kwargs):
 		"""Instanciate a new Field
@@ -137,7 +135,15 @@ class Binary(Field):
 
 
 class Datetime(Field):
-	pass
+	def default(self, *args):
+		if not hasattr(self, '__default__'):
+			return None
+
+		if self.__default__ == 'now':
+			from datetime import datetime
+			return datetime.now()
+
+		return self.__default__
 
 
 class Reference(Field):

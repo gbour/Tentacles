@@ -33,7 +33,7 @@ class Object(object):
 
 	@classmethod
 	def create(cls):
-		q = 'CREATE TABLE ' + cls.__stor_name__ + ' ( \n'
+		q = 'CREATE TABLE IF NOT EXISTS ' + cls.__stor_name__ + ' ( \n'
 		for fld in cls.__fields__.itervalues():
 			if fld.__hidden__:
 				continue
@@ -72,11 +72,10 @@ class Object(object):
 
 		self.__dict__['__locked__'] = True
 		# check references
-		if self.__saved__:
-			for refdef in self.__refs__:
-				refval = getattr(self, refdef.name)
-				if refval is not None and not refval.saved():
-					refval.save()
+		for refdef in self.__refs__:
+			refval = getattr(self, refdef.name)
+			if refval is not None and not refval.saved():
+				refval.save()
 
 		cache = False
 		if len(self.__changes__) > 0:

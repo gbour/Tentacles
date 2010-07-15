@@ -32,6 +32,9 @@ class Field(object):
 	def sql_protect(self, value):
 		return value
 
+	def sql2py(self, value):
+		return value
+
 	def sql_def(self):
 		return "%s %s" % (self.name, self.sql_type)
 
@@ -75,6 +78,8 @@ class Boolean(Integer):
 	def sql_protect(self, value):
 		return '1' if value else '0'
 
+	def sql2py(self, value):
+		return False if value == 0 else True
 
 class Datetime(String):
 	sql_type = 'TEXT'
@@ -85,7 +90,7 @@ class Datetime(String):
 		if value == 'now':
 			dt = datetime.now()
 			
-		return dt.strftime("\"%Y/%m/%d %H:%M:%S\"")
+		return dt.strftime("\"%Y-%m-%d %H:%M:%S\"")
 
 
 class Reference(Field):
@@ -120,10 +125,8 @@ class ReferenceSet(Field):
 	def __backend_init__(self):
 		"""We instanciate join table
 		"""
-		print "  . referenceset::backend_init"
 		if not isinstance(self.sibling, fields.ReferenceSet) or self.reverse:
 			return
-		print "  . referenceset::backend_init2"
 
 		global JOIN_COUNT
 		JOIN_COUNT += 1
@@ -154,10 +157,8 @@ class ReferenceSet(Field):
 
 
 #		print '>>', self.__stor_name__, dct
-		print "    plop>"
 		join = new.classobj(self.__stor_name__[0].upper() + self.__stor_name__[1:], 
 				(Object,), dct)
-		print "    plop<"
 
 	def get(self, owner=None, cache_only=False, **kwargs):
 		"""Get relational datas
