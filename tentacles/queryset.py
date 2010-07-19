@@ -56,7 +56,7 @@ class QuerySet(Inherit):
 		return self
 		
 	def __len__(self):
-		if self._resultset_:
+		if self._resultset_ is not None:
 			return len(self._resultset_)
 
 		self.aggregate = 'len'
@@ -72,7 +72,6 @@ class QuerySet(Inherit):
 			args, byte, globals, locals = ByteCode.parse(self.flit)
 		else:
 			args, byte, globals, locals = ((), None, (), {})
-		print byte, args, globals
 
 		self._resultset_ = self.__query__(byte, args, globals, locals)
 		def __iterator__():
@@ -91,7 +90,6 @@ class QuerySet(Inherit):
 
 	def __initobj__(self, rset):
 		if rset[self.obj.__pk__[0].name] in self.obj.__cache__:
-#			print "found in cache"
 			return self.obj.__cache__[rset[self.obj.__pk__[0].name]]
 
 		obj = object.__new__(self.obj)
@@ -272,7 +270,7 @@ class Variable(Opcode):
 		if len(self.attrs) > 0 :
 			s += '.' + '.'.join(self.attrs)
 		if self.index is not None:
-			s += "[%d]" % self.index
+			s += "[%s]" % self.index
 
 		return s
 

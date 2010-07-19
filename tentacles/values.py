@@ -109,8 +109,8 @@ class RefList(object):
 		return item
 		
 	def clear(self):
-		for item in self.__items__:
-			print "clear", item
+		# we must make a copy because we modify the list during its enumeration
+		for item in list(self.__items__):
 			self.remove(item)
 
 class o2m_RefList(RefList):

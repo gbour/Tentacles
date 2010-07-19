@@ -20,7 +20,7 @@ __author__  = "Guillaume Bour <guillaume@bour.cc>"
 __version__ = "$Revision$"
 __date__    = "$Date$"
 
-import new
+import new, sqlite3
 from datetime import datetime
 from tentacles import Storage, Object, Ghost
 from tentacles import fields
@@ -33,6 +33,16 @@ class Field(object):
 		return value
 
 	def sql2py(self, value):
+		return value
+
+	def py2sql(self, value):
+		"""NOTE: py2sql and sql_protect are different
+		
+			sql_protect is for use in a SQL Query string
+			py2sql is for placeholder values
+			
+		TODO: usually, it is serialize() which is used insted of py2sql
+		"""
 		return value
 
 	def sql_def(self):
@@ -70,6 +80,13 @@ class String(Field):
 
 class Binary(Field):
 	sql_type = 'BLOB'
+
+#	def py2sql(self, value):
+	def serialize(self, value):
+		if value is None:
+			return value
+
+		return sqlite3.Binary(value)
 
 
 class Boolean(Integer):
