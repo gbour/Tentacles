@@ -88,8 +88,10 @@ class Object(object):
 
 			autoid = Storage.__instance__.execute(q, values)
 
-			if self.__pk__[0].autoincrement:
+			#TODO: autoid value must be set only when 1st insert
+			if self.__pk__[0].autoincrement and getattr(self, self.__pk__[0].name) is None:
 				setattr(self, self.__pk__[0].name, autoid)
+				self.__origin__[self.__pk__[0].name] = autoid
 
 			if cache:
 				self.__cache__[getattr(self, self.__pk__[0].name)] = self
@@ -148,10 +150,8 @@ class Object(object):
 		if not self.__saved__:
 			return
 
-		print self.__refs__
 		for refdef in self.__refs__:
 			refval = getattr(self, refdef.name)
-#			print "ref=", refdef, refval
 			refval.clear()
 			refval.save()
 
@@ -163,7 +163,6 @@ class Object(object):
 
 	@classmethod
 	def get(cls, lazy=True, owner=None, cache_only=False, **kwargs):
-		print "GET"
 		# get from cache
 		if cls.__pk__[0].name in kwargs and \
 			kwargs[cls.__pk__[0].name] in cls.__cache__:

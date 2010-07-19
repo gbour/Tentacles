@@ -104,7 +104,7 @@ class InOp(object):
 	sqlop = "IN"
 
 	def buildQ(self, locals, globals, operator, *args, **kwargs):
-		print "IN::buildQ"
+		print "IN::buildQ", self.right
 		tables , left , values  = self.left.buildQ(locals, globals , self, 'left')
 		rtables, right, rvalues = self.right.buildQ(locals, globals, self, 'right')
 
@@ -188,6 +188,10 @@ class Variable(object):
 					args   = [val]
 				else:
 					args   = [val.id] # should be dynamic
+		elif hasattr(val, '__iter__'):
+			q      = '(' + ','.join('?' for item in val) + ')'
+			args   = list(val)
+			tables = []
 		else:
 			q      = '?'
 			args   = [val]
