@@ -7,11 +7,13 @@ from distutils.core import setup
 setup(
 	name         = 'tentacles',
 	version      = '0.1.0',
-	description  = 'Python ORM',
+	description  = 'ORM',
 	author       = 'Guillaume Bour',
 	author_email = 'guillaume@bour.cc',
 	url          = 'http://devedge.bour.cc/wiki/Tentacles/',
-	licence      = 'GPL v3',
+	license      = 'Affero',
+	classifiers  = [],
 
-	packages=['tentacles', 'tentacles.backends', 'tentacles.backends.sqlite3'],
+	packages=['tentacles', 'tentacles.backends.sqlite3'],
+	requires=['odict', 'reblok'],
 )
