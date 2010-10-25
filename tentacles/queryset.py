@@ -21,78 +21,57 @@ __version__ = "$Revision$"
 __date__    = "$Date$"
 
 import sys, inspect, types
+from reblok import Parser, opcodes
+
 from tentacles import *
 from tentacles.fields import ReferenceSet, Reference
 from tentacles.inheritance import Inherit
 
-import byteplay as byte
+from tentacles import py2sql, sqlcodes
+from tentacles import Storage as Stor
+from tentacles.lazy     import Ghost
 
-class QuerySet(Inherit):
-	def __init__(self, obj=None, flit=None):
-		"""
-			obj  = object
-			flit = filter
-		"""
-		self.obj   = obj
-		self.flit  = flit
-		self.slice = None
-		self.aggregate = None
-		self._resultset_ = None
-		
-	def setflit(self, flit):
-		self.flit = flit
+class BaseQuerySet(Inherit):
+	def __init__(self, target):
+		if not isinstance(target, BaseQuerySet):
+			target = RootQuerySet(target)
+		self.target     = target
 
-	def __getitem__(self, key):
-		"""
-			Either used to get one value (key is integer) or slice (key is slice)
-		"""
-		if isinstance(key, slice):
-			self.slice = key
-		elif isinstance(key, int): # int
-			self.slice = [key, key+1]
-		else:
-			raise(Exception(""))
-			
-		return self
-		
-	def __len__(self):
-		if self._resultset_ is not None:
-			return len(self._resultset_)
-
-		self.aggregate = 'len'
-		args, byte, globals, locals = ByteCode.parse(self.flit)
-
-		self._resultset_ = self.__query__(byte, args, globals, locals)
-		self.aggregate = None
-
-		return self._resultset_[0][0]
+	def _target(self):
+		return self.target._target()
 
 	def __iter__(self):
-		if self.flit:
-			args, byte, globals, locals = ByteCode.parse(self.flit)
-		else:
-			args, byte, globals, locals = ((), None, (), {})
+		Qtree = self._resolve()
 
-		self._resultset_ = self.__query__(byte, args, globals, locals)
+		# return raw result: list of values
+		Q, values, fmt = self.ast2query(Qtree)
+		rset = Stor.__instance__.query(Q, values)
+
+		target = self._target()
+		
 		def __iterator__():
 			i = 0
+			l = len(rset)
 
-			while i < len(self._resultset_):
-				#yield self._resultset_[i]
-				yield self.__initobj__(self._resultset_[i])
+			while i < l:
+				yield self._initobj(rset[i], target, fmt)
 				i += 1
 
 			raise StopIteration
 		
-#		return iter(self._resultset_)
-#		return QuerySetIterator(self._resultset_).init()
 		return __iterator__()
 
-	def __initobj__(self, rset):
-		if rset[self.obj.__pk__[0].name] in self.obj.__cache__:
-			return self.obj.__cache__[rset[self.obj.__pk__[0].name]]
+	def _resolve(self):
+		return self.target._resolve()
 
-		obj = object.__new__(self.obj)
+	def _initobj(self, rset, target, fmt):
+		"""Transform a list of values into an object
+		"""
+		# return cached value if exist
+		if rset[target.__pk__[0].name] in target.__cache__:
+			return target.__cache__[rset[target.__pk__[0].name]]
+
+		obj = object.__new__(target)
 		obj.__init__()
 
 		for name, fld in obj.__fields__.iteritems():
@@ -115,303 +94,235 @@ class QuerySet(Inherit):
 		obj.__dict__['__changed__'] = False
 		obj.__reset__()
 
-		self.obj.__cache__[getattr(obj, self.obj.__pk__[0].name)] = obj
+		target.__cache__[getattr(obj, target.__pk__[0].name)] = obj
 		return obj
 
-
-#class QuerySetIterator(object):
-#	def __init__(self, resultset):
-#		self.resultset = resultset
-#		print self.resultset
-
-#	def init(self):
-#		i = 0
-
-#		while i < len(self.resultset):
-#			yield self.resultset[i]
-#			i += 1
-
-#		raise StopIteration
-
-
-def filter(lep, qset):
-	if issubclass(qset, Object):
-		qset = QuerySet(qset)
-	qset.setflit(lep)
-	
-	return qset
-
-
-def map():
-	pass
-	
-def reduce():
-	pass
-
-#def list(iterator):
-#	returnprint "get list from", iterator
-
-""" Instrutions """
-class Opcode(Inherit):
-	__override__ = ('buildQ')
-
-	def buildQ(self, *args, **kwargs):
-		print "default buildQ", self
-		return [], None, []
-
-
-class Op(Opcode):
-	""" Operations (booleans, numeric)
-	"""
-	def __new__(cls, *args, **kwargs):
-#		print 'op new', cls, args, kwargs
-		
-		klass = None
-		if args[0] == '==' or args[0] == 'is' :
-			klass = EqOp
-		if args[0] == '!=' or args[0] == 'is not' :
-			klass = NeqOp
-		if args[0] == 'not':
-			klass = NotOp
-		if args[0] == 'in':
-			klass = InOp
-		if args[0] == 'not in':
-			klass = NotinOp
-
-		elif args[0] == 'or':
-			klass = OrOp
-		elif args[0] == 'and':
-			klass = AndOp
-		elif args[0] == '+':
-			klass = AddOp
-		elif args[0] == '>':
-			klass = GreaterOp
-		elif args[0] == '>=':
-			klass = GreaterEqOp
+	def __getitem__(self, key):
+		"""
+			Either used to get one value (key is integer) or slice (key is slice)
+		"""
+		if isinstance(key, slice):
+			_slice = key
+		elif isinstance(key, int): # int
+			_slice = slice(key, None, None)
+		else:
+			raise(Exception(""))
 			
-#		print 'klass=', klass
-		return object.__new__(klass, *args, **kwargs)
+		return SliceQuerySet(self, _slice)
 
-class UnaryOp(Op):
-	""" An unary operation as only one operand
-	"""
-	def __init__(self, op, stack):
-		self.operand = stack.pop()
+	def __rshift__(self, arg):
+		if not hasattr(arg, '__iter__'):
+			arg = (arg,)
+		return OrderQuerySet(self, +1, arg)
 
-	def __str__(self):
-		return "%s %s " % (self.op, self.left)
+	def __lshift__(self, arg):
+		if not hasattr(arg, '__iter__'):
+			arg = (arg,)
+		return OrderQuerySet(self, -1, arg)
 
-class NotOp(UnaryOp):
-	op = 'not'
-	
-class BinaryOp(Op):
-	""" A binary operation as 2 operands (left and right)
-	"""
-	def __init__(self, op, stack):
-		self.right = stack.pop()
-		self.left  = stack.pop()
+	def __xlen__(self):
+		"""
+			NOTE: MUST return an integer (or python raise TypeError exception)
+		"""
+		return ReduceQuerySet(self, 'len').get()
 
-	def __str__(self):
-		return "%s(%s, %s)" % (self.__class__.__name__, self.left, self.right)
+class RootQuerySet(BaseQuerySet):
+	def __init__(self, target):
+		self.target = target
 
-#	def sql(self, *args):
-#		return "%s %s %s " % (self.left.sql(*args), self.sqlop, self.right.sql(*args))
+	def _target(self):
+		return self.target
 
-class EqOp(BinaryOp):
-	""" equal comparison """
-	op = '=='
-
-class InOp(BinaryOp):
-	""" in comparison (set of values) """
-	op = 'in'
-
-class NotinOp(BinaryOp):
-	""" in comparison (set of values) """
-	op = 'not in'
-
-class BoolOp(Op):
-	"""
-	"""
-	def __init__(self, op, label=None, stack=None):
-		self.label = label
-
-	def __str__(self):
-		return "%s(%s, %s)" % (self.__class__.__name__, self.left, self.right)
-
-class OrOp(BoolOp):
-	op = 'or'
-
-class AndOp(BoolOp):
-	op = 'and'
-
-class AddOp(BinaryOp):
-	op = '+'
-
-class GreaterOp(BinaryOp):
-	op = '>'
-class GreaterEqOp(BinaryOp):
-	op = '>='
-
-
-class Variable(Opcode):
-	def __init__(self, name):
-		self.name = name
-		self.attrs = []
-		self.index = None
-
-	def setAttribute(self, attr):
-		self.attrs.append(attr)
-
-	def setIndex(self, index):
-		self.index = index
-
-	def __str__(self):
-		s = "Var(%s)" % self.name
-		if len(self.attrs) > 0 :
-			s += '.' + '.'.join(self.attrs)
-		if self.index is not None:
-			s += "[%s]" % self.index
-
-		return s
-
-
-class Value(Opcode):
-	def __new__(cls, *args, **kwargs):
-		klass = None
-		if isinstance(args[0], str):
-			klass = StrValue
-		elif isinstance(args[0], int):
-			klass = IntValue
-		elif isinstance(args[0], list) or isinstance(args[0], tuple):
-			klass = ListValue
-			
-		return object.__new__(klass, *args, **kwargs)
-	
-	def __init__(self, val):
-		self.val = val
-
-
-class StrValue(Value):
-	def __str__(self):
-		return "'%s'" % self.val
-
-class IntValue(Value):
-	def __str__(self):
-		return "%d" % self.val
-
-class ListValue(Value):
-	def __str__(self):
-		return str(self.val)
-
-class Function(Opcode):
-	def __init__(self, name, args):
-		self.name   = name
-		self.args   = args
-		self.kwargs = {}
-
-	def setAttribute(self, attr):
-		self.attrs.append(attr)
+	def _resolve(self):
+		"""
+			Query AST
+				1. action
+				2. fields
+				3. datasource
+				4. condition
+				5. result order
+				6. limit
+		"""
+		return [sqlcodes.SELECT, None, self.target, None, [], None]
 		
-	def addKWArg(self, key, value):
-		self.kwargs[key] = value
-		
-	def __str__(self):
-		s = "%s(" % self.name
-		for arg in self.args:
-			s += str(arg) + ","
-		for k, v in self.kwargs.iteritems():
-			s += "%s=%s," % (k, v)
-		s += ")"
-		return s
+class OrderQuerySet(BaseQuerySet):
+	def __init__(self, target, order, fields):
+		super(OrderQuerySet, self).__init__(target)
 
-class ByteCode(object):
-	@staticmethod
-	def parse(func):
-		c = byte.Code.from_code(func.func_code)
-#		print "C vars=", c.args, c.freevars, c.newlocals, c.varargs, c.varkwargs
-#		print func.func_code.co_varnames, func.func_code.co_freevars, func.func_code.co_cellvars
+		self.order  = order  # +1 or -1
+		self.fields = fields
 
-		# 1st function argument is the "table line"
-		tblarg = c.args[0]
-		stack  = []
-		jumps  = {}
-		globals = []
+	def _resolve(self):
+		target = self.target._resolve()
+		for fld in self.fields:
+			target[4].append((fld, self.order))
 
-		for line in c.code:
-#			print line
-			if isinstance(line[0], byte.Label): # jump destination
-				for instr in jumps[line[0]]:
-					instr.right = stack.pop()
-					instr.left  = stack.pop()
-					stack.append(instr)
+		return target
 
-			elif not byte.isopcode(line):
-				continue
+class SliceQuerySet(BaseQuerySet):
+	def __init__(self, target, slice):
+		super(SliceQuerySet, self).__init__(target)
 
-			# local variable 
-			if   line[0] == byte.LOAD_FAST:
-				stack.append(Variable(line[1]))
-			# extern (global) variable
-			elif line[0] == byte.LOAD_GLOBAL:
-				if line[1] == 'True':
-					stack.append(Value(True))
-				elif line[1] == 'False':
-					stack.append(Value(False))
-				else:
-					stack.append(Variable(line[1]))
-					globals.append(line[1])
-			elif line[0] == byte.LOAD_DEREF:
-				stack.append(Variable(line[1]))
+		self.slice = slice
 
-			# object attribute
-			elif line[0] == byte.LOAD_ATTR:
-				stack[-1].setAttribute(line[1])
-			elif line[0] == byte.LOAD_CONST:
-				stack.append(Value(line[1]))
-			elif line[0] == byte.BINARY_SUBSCR:
-				stack[-2].setIndex(stack.pop().val)
-			elif line[0] == byte.COMPARE_OP:
-				# the comparison operator is in line[1]
-				stack.append(Op(line[1], stack))
-			elif line[0] == byte.UNARY_NOT:
-				stack.append(NotOp('not', stack))
-			elif line[0] == byte.BINARY_ADD:
-				stack.append(AddOp('+', stack))
+	def _resolve(self):
+		target    = self.target._resolve()
+		if target[5] is None:
+			target[5] = self.slice
+		else:
+			target = [sqlcodes.SELECT, None, target, None, [], self.slice]
 
-			# boolean ops
-			elif line[0] == byte.JUMP_IF_TRUE:
-				if not line[1] in jumps:
-					jumps[line[1]] = []
-				jumps[line[1]].insert(0, Op('or'))
+		return target
 
-			elif line[0] == byte.JUMP_IF_FALSE:
-				if not line[1] in jumps:
-					jumps[line[1]] = []
-				jumps[line[1]].insert(0, Op('and'))
+class FilterQuerySet(BaseQuerySet):
+	def __init__(self, target, conditions=None):
+		"""
+			target   : Queryset target.
+				may be either a MetaObject (Object definition) or another sub-queryset
 
-			# 2d param is the number of func args
-			elif line[0] == byte.CALL_FUNCTION:
-				""" line[1] is arguments number:
-							line[1] % 8                     == positional args
-							line[1] - (line[1] << 8) / 2**8 = varargs
-				"""
-				argc    = line[1] % 256
-				varargc = (line[1] - argc) / 256
+			condition: queryset condition. It is a python AST as returned by reblok
+				it may be:
+					1. a lambda expression
+					2. a function call      (in the future)
 
-				func = Function(
-					stack[-1-argc-2*varargc], 
-					stack[-argc-2*varargc:len(stack)-2*varargc]
+				If it's a lambda expression, we simplify by only keeping the conditional part
+				i.e
+					lambda u: u.name == 'john'
+
+					['function', '<lambda>', [['ret', ('eq', ('attr', ('var', 'u', 'local'),
+					'name'), ('const', 'john'))]], [('u', '<undef>')], None, None, [], None]
+
+					(('eq', ('attr', ('var', 'u', 'local'), 'name'), ('const', 'john')), [('u',
+					'<undef>')], [])
+
+					we have: 1) the expression, 2) the argument, 3) the global variables used
+		"""
+		super(FilterQuerySet, self).__init__(target)
+
+		self.conditions = Parser().walk(conditions)
+
+		# for now, we only allow lambda expressions
+		assert(self.conditions[0] == sqlcodes.FUNC and self.conditions[1] == '<lambda>')
+		self.conditions = (
+				self.conditions[2][0][1], # expression
+				self.conditions[3],
+				self.conditions[6],
+				self.conditions[7]
 				)
 
-				for i in xrange(varargc):
-					func.addKWArg(stack[len(stack)-2-2*i], stack[len(stack)-1-2*i])
+	def _resolve(self):
+		target = self.target._resolve()
 
-				del stack[-1-argc-2*varargc:]
-				stack.append(func)
-				
-		locals = {}
-		for i in xrange(len(c.freevars)):
-			locals[c.freevars[i]] = func.func_closure[i].cell_contents
+		if isinstance(self.target, SliceQuerySet):
+			target = [sqlcodes.SELECT, None, target, self.conditions, [], None]
+		elif isinstance(self.target, FilterQuerySet):
+			#TODO: a bit more complex (merge expression, args renames, global vars)
+			target[3] = (sqlcodes.AND, target[3], self.conditions)
+		else:
+			target[3]  = self.conditions
 
-		return c.args, stack.pop(), globals, locals
+		return target
+
+class ReduceQuerySet(BaseQuerySet):
+	def __init__(self, target, op):
+		super(ReduceQuerySet, self).__init__(target)
+
+		self.op = op
+
+	def get(self):
+		Qtree = self._resolve()
+
+		Q, values, fmt = self.ast2query(Qtree)
+		rset = Stor.__instance__.query(Q, values)
+
+		return rset[0][0]
+
+	def _resolve(self):
+		"""
+			MUST return a unique value
+		"""
+		target = self.target._resolve()
+		target[1] = 'len'
+		
+		return target
+
+class MapQuerySet(BaseQuerySet):
+	def __init__(self, target, fields):
+		"""
+			fields is a lambda expression, returning either:
+				a single field
+				a list
+				a dict
+
+			each individual field can be an expression
+		"""
+		super(MapQuerySet, self).__init__(target)
+
+		self.fields = Parser().walk(fields)
+
+	def _resolve(self):
+		target = self.target._resolve()
+		target[1] = self.fields
+
+		return target
+
+	def _initobj(self, rset, target, fmt):
+		"""Transform a list of values into an object
+		"""
+		if fmt == 'single':
+			rset = rset[0]
+		elif fmt == 'dict':
+			rset = dict(rset)
+
+		return rset
+
+orig_filter = filter
+def filter(fnc, target):
+	from tentacles.table import MetaObject
+	if isinstance(target, BaseQuerySet) or isinstance(target, MetaObject):
+		return FilterQuerySet(target, fnc)
+
+	return orig_filter(fnc, target)
+
+orig_map = map
+def map(fnc, target):
+	from tentacles.table import MetaObject
+	if isinstance(target, BaseQuerySet) or isinstance(target, MetaObject):
+		return MapQuerySet(target, fnc)
+
+	return orig_map(fnc, target)
+
+orig_len = len
+def len(obj):
+	from tentacles.table import MetaObject
+	if isinstance(obj, BaseQuerySet) or isinstance(obj, MetaObject):
+		return obj.__xlen__()
+
+	return orig_len(obj)
+
+#def reduce():
+#	pass
+#
+
+
+#class Function(Opcode):
+#	def __init__(self, name, args):
+#		self.name   = name
+#		self.args   = args
+#		self.kwargs = {}
+#
+#	def setAttribute(self, attr):
+#		self.attrs.append(attr)
+#		
+#	def addKWArg(self, key, value):
+#		self.kwargs[key] = value
+#		
+#	def __str__(self):
+#		s = "%s(" % self.name
+#		for arg in self.args:
+#			s += str(arg) + ","
+#		for k, v in self.kwargs.iteritems():
+#			s += "%s=%s," % (k, v)
+#		s += ")"
+#		return s
 

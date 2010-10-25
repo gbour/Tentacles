@@ -27,4 +27,4 @@ from table    import Object
 from lazy     import Ghost
 
 import backends
-from queryset import QuerySet
+from queryset import filter, map, len
