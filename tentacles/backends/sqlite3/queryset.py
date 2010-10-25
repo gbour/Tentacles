@@ -23,193 +23,371 @@ __date__    = "$Date$"
 import sys, sqlite3
 from tentacles import Storage as Stor
 import tentacles
+from tentacles import sqlcodes, table, fields
+from reblok import namespaces
+from tentacles.table import MetaObject
 
-class QuerySet(object):
-	def __query__(self, opcode, args, externvars, locals):
-		# we resolve global variables
-		globals = {}
-		for name in externvars:
-			if hasattr(sys.modules['__main__'], name):
-				globals[name] = getattr(sys.modules['__main__'], name)
-			else:
-				globals[name] = None
-		
-		globals.update(locals)
-		print "GLOBALS=", globals
-	
-		# opcode contains conditional instructions, in the form of virtual opcodes
-		# argname is the name of self.obj
-		
-		# return: (tables, where condition)
-		
-		q = "SELECT "
-		if self.aggregate == 'len':
-			q += "count(*)"
+SUBQUERY = 1
+class MetaObjAttr(object):
+	def __init__(self, obj, attrname):
+		self.obj      = obj
+		self.attrname = attrname
+
+	def __str__(self):
+		return "%s.%s" % (self.obj.__stor_name__, self.attrname)
+
+class ObjAttr(object):
+	def __init__(self, obj, attrname):
+		self.obj      = obj
+		self.attrname = attrname
+
+	def __str__(self):
+		return "%s.%s" % (self.obj, self.attrname)
+
+AGGREGATIONS = {
+	'len': 'COUNT(*)'
+}
+
+class BaseQuerySet(object):
+	def ast2query(self, qtree):
+		"""
+			we need a way to associate lambda function arguments with target objects
+
+			we also have global variables
+		"""
+		cc = sys._getframe()
+		#print cc.f_code.co_name, cc.f_code.co_freevars
+
+		# do we have subquery ?
+		datasource = subQ = qtree[2]
+		if isinstance(datasource, list):
+			subQ, subvalues = self.ast2query(datasource); datasource = SUBQUERY
+
+		Q  = 'SELECT '
+		fmt = 'object'
+
+		# selection field
+		if qtree[1] is None:
+			# query all field == object
+			Q += "%s.*" % (self.tablesolve(datasource))
+		elif isinstance(qtree[1], str):
+			# aggregation
+			Q += AGGREGATIONS.get(qtree[1], qtree[1])
+		elif isinstance(qtree[1], list) and qtree[1][0] == 'function':
+			_Q, fmt = self.mapargs(qtree[1], datasource)
+			Q += _Q
 		else:
-			q+= "*"
+			raise Exception('Unknown selection field %s' % str(qtree[1]))
 
-#		print "OPCODE=", opcode, args, self.obj, globals
-		if opcode:
-			tables, condition, values = opcode.buildQ(locals={args[0]: self.obj}, globals=globals, operator=None)
+		# where is the condition.
+		if qtree[3] is not None:
+			condition, _locals, _globals, _derefs = qtree[3]
+			_globals = dict([(name, getattr(sys.modules['__main__'], name)) for name in _globals])
+			# only one positional argument expected, resolved as datasource
+			assert len(_locals) == 1
+			_locals  = {_locals[0][0]: datasource}
+
+			condition, tables, values = self._dispatch(condition, globals=_globals,
+					locals=_locals, derefs=_derefs, target=datasource)
 		else:
-			tables, condition, values = (set(), None, [])
-		tables = tables.union([self.obj.__stor_name__])
-		
-		q += " FROM %s" % ','.join(tables)
-		if condition:
-			q += " WHERE %s" % condition
-		if self.slice:
-			q += " LIMIT %d OFFSET %s" % (self.slice.stop-self.slice.start, self.slice.start)
-		print q, values
-		return Stor.__instance__.query(q, values)
+			tables = [datasource]
+			condition = None
+			values = []
 
+		if datasource == SUBQUERY:
+			Q+= ' FROM (%s)' % subQ
+		else:
+			Q += ' FROM ' + ','.join([self.tablesolve(table) for table in tables])
+		if condition is not None:
+			Q += ' WHERE %s' % condition
 
-class BinaryOp(object):
-	def buildQ(self, locals, globals, *args, **kwargs):
-		tables , left , values  = self.left.buildQ(locals, globals, self, 'left')
-		rtables, right, rvalues = self.right.buildQ(locals, globals, self, 'right')
+		# ORDER
+		if len(qtree[4]) > 0:
+			Q += ' ORDER BY ' + ', '.join(["%s %s" % (o[0], 'ASC' if o[1] > 0 else 'DESC') for o in qtree[4]])
+
+		# RANGE selection
+		if qtree[5] is not None:
+			start = qtree[5].start if qtree[5].start is not None else 0
+			stop  = qtree[5].stop
+
+			if stop is not None:
+				Q += ' LIMIT %d OFFSET %d' % (stop-start+1, start)
+				
+		return Q, values, fmt
+
+	def tablesolve(self, table):
+		# relation tables are not instances of MetaObject (built dynamically)
+		#if isinstance(table, MetaObject):
+		if hasattr(table, '__stor_name__'):
+			return table.__stor_name__
+
+		return ast2query(table)
+
+	def buildQ():
+		pass
+
+	OPS = {
+		sqlcodes.OR  : ('BINARYOP', 'OR'),
+		sqlcodes.AND : ('BINARYOP', 'AND'),
+
+		sqlcodes.EQ  : ('COMPARISON', '='),
+		sqlcodes.NEQ : ('COMPARISON', '!='),
+
+		sqlcodes.LT  : ('BINARYOP', '<'),
+		sqlcodes.GT  : ('BINARYOP', '>'),
+		sqlcodes.LEQ : ('BINARYOP', '<='),
+		sqlcodes.GEQ : ('BINARYOP', '>='),
+
+		sqlcodes.IN  : ('IN', 'IN'),
+		sqlcodes.NIN : ('IN', 'NOT IN'),
+	}
+
+	def _dispatch(self, instr, **kwargs):
+		callback = (instr[0].upper().replace(' ', ''), None)
+		if instr[0] in self.OPS:
+			callback = self.OPS[instr[0]]
+
+		kwargs['extra'] = callback[1]
+		return getattr(self, 'do_%s' % callback[0])(instr, **kwargs) 
+
+	def do_BINARYOP(self, instr, **kwargs):
+		left , tables , values  = self._dispatch(instr[1], **kwargs)
+		right, rtables, rvalues = self._dispatch(instr[2], **kwargs)
 		
 		tables = tables.union(rtables)
 		values.extend(rvalues)
 
 		#TODO: right == None values =>  "is NULL"
-		return tables, "%s %s %s" % (left, self.sqlop, right), values
-		
-class EqOp(object):
-	sqlop = '='
-	
-class GreaterOp(object):
-	sqlop = '>'
+		return "%s %s %s" % (left, kwargs['extra'], right), tables, values
 
-class GreaterEqOp(object):
-	sqlop = '>='
-
-class BoolOp(object):
-	""" false: a boolean operation can be either binary or unary """
-	def buildQ(self, locals, globals, operator):
-		tables , left , values  = self.left.buildQ(locals, globals , self, 'left')
-		rtables, right, rvalues = self.right.buildQ(locals, globals, self, 'right')
-		
-		tables = tables.union(rtables)
-		values.extend(rvalues)
-		return tables, "%s %s %s" % (left, self.sqlop, right), values
-
-class AndOp(object):
-	sqlop = "AND"
-
-class OrOp(object):
-	sqlop = "OR"
-
-class InOp(object):
-	sqlop = "IN"
-
-	def buildQ(self, locals, globals, operator, *args, **kwargs):
-		print "IN::buildQ", self.right
-		tables , left , values  = self.left.buildQ(locals, globals , self, 'left')
-		rtables, right, rvalues = self.right.buildQ(locals, globals, self, 'right')
+	def do_COMPARISON(self, instr, **kwargs):
+		left , tables , values  = self._dispatch(instr[1], **kwargs)
+		right, rtables, rvalues = self._dispatch(instr[2], **kwargs)
 
 		tables = tables.union(rtables)
 		values.extend(rvalues)
-		return tables, "%s %s %s" % (left, self.sqlop, right), values
 
-class NotinOp(object):
-	sqlop = "NOT IN"
+		if isinstance(left, MetaObjAttr):
+			tables.add(left.obj)
+		if isinstance(right, MetaObjAttr):
+			tables.add(right.obj)
 
-class Variable(object):
-	def buildQ(self, locals, globals, operator, pos=None):
-#		print self, "OP=", operator
-	
-		if self.name in locals:
-			val = locals[self.name]
-		elif self.name in globals:
-			val = globals[self.name]
-		else:
-			raise Exception("Parser::Variable= %s variable not set" % self.name)
+		return "%s %s %s" % (left, kwargs['extra'], right), tables, values
+			
+
+	def do_IN(self, instr, **kwargs):
+		left , tables , values  = self._dispatch(instr[1], **kwargs)
+		right, rtables, rvalues = self._dispatch(instr[2], **kwargs)
+
+		tables = tables.union(rtables)
+		values.extend(rvalues)
+
+		if isinstance(left, MetaObjAttr):
+			tables.add(left.obj)
+
+			if isinstance(left.obj.__fields__[left.attrname], fields.ReferenceSet):
+				rel = left.obj.__fields__[left.attrname]
+				# need a join
+				tables.add(rel)
+				
+				left = "%s.%s = %s.%s AND %s.%s" % (
+					left.obj.__stor_name__,
+					left.obj.__pk__[0].name,
+					rel.__stor_name__,
+					rel.__pk_stor_names__[rel.__owner__.__pk__[0]],
+					rel.__stor_name__,
+					rel.__pk_stor_names__[rel.sibling.__owner__.__pk__[0]]
+				)
+
+		# target is on the left side of IN operation
+		elif isinstance(left, table.MetaObject) and left == kwargs['target']:
+			# TODO: here we only support one-field primary key
+			tables.add(left)
+			left = "%s.%s" % (left.__stor_name__, left.__pk__[0].name)
+
+			# 1. right is also a MetaObjAttr => we do a subquery
+			#TODO: optimization: transform subquery into flat join query (with DISTINCT)
+			if isinstance(right, MetaObjAttr):
+				rel = right.obj.__fields__[right.attrname]
+
+				if isinstance(rel, fields.ReferenceSet):
+					right = "(SELECT DISTINCT %s FROM %s)" % (
+						rel.__pk_stor_names__[rel.sibling.__owner__.__pk__[0]],
+						rel.__stor_name__
+					)
+
+				else: # isinstance(rel, fields.Reference):
+					right = "(SELECT %s FROM %s)" % (right.attrname, right.obj.__stor_name__)
+
+			elif isinstance(right, ObjAttr):
+				rel = right.obj.__fields__[right.attrname]
+
+				values.append(getattr(right.obj, right.obj.__pk__[0].name))
+				right = "(SELECT %s FROM %s WHERE %s = ?)" % (
+					rel.__pk_stor_names__[rel.sibling.__owner__.__pk__[0]],
+					rel.__stor_name__,
+					rel.__pk_stor_names__[rel.__owner__.__pk__[0]]
+				)
 
 		#
-		if self.index is not None:
-			val = val[self.index]
+		# reversed IN: right part my be MetaObject, MetaObjAttr
+		elif isinstance(right, MetaObjAttr):
+			# we accept only object
+			# later, we will accept PK raw value (integer, string, list of values)
+			assert isinstance(left, table.Object)
+			rel = right.obj.__fields__[right.attrname]
 
-		from tentacles.table import Object, MetaObject
-		if isinstance(val, MetaObject):
-			if (isinstance(operator, tentacles.queryset.InOp) or isinstance(operator, tentacles.queryset.NotinOp)) and pos == 'right':
-				field = val.__fields__[self.attrs[0]]
-				print field
-				
-				# one2many/many2many relation 
-				from tentacles.fields import ReferenceSet
-				if isinstance(field, ReferenceSet):
-					print "PLOP", field.__stor_name__, field.__pk_stor_names__, field.name, field.sibling
-					q = "(SELECT DISTINCT %s FROM %s)" % (field.__pk_stor_names__[field.sibling.__owner__.__pk__[0]], field.__stor_name__)
-					tables = []
-					args   = []
-					
-				else:
-						
-					""" we must do a subquery """
-					tables = []
-					args   = []
-					q      = "(SELECT DISTINCT %s FROM %s)" % (self.attrs[0], val.__stor_name__)
-			else:
-				q      = val.__stor_name__
-				tables = [val.__stor_name__]
-				args   = []
+			tables.add(right.obj)
+			values.append(getattr(left, left.__pk__[0].name))
+			left = right.obj.__pk__[0].name
+			right = "(SELECT %s FROM %s WHERE %s = ?)" % (
+				rel.__pk_stor_names__[rel.__owner__.__pk__[0]],
+				rel.__stor_name__,
+				rel.__pk_stor_names__[rel.sibling.__owner__.__pk__[0]]
+			)
 
-				if len(self.attrs) > 0:
-					if self.attrs[0] not in val.__fields__:
-						raise Exception("object %s has no %s attribute" % (val, self.attrs[0]))
 
-					q += "." + self.attrs[0]
+		return "%s %s %s" % (left, kwargs['extra'], right), tables, values
 
-				else:
-					q += "." + val.__pk__[0].name
+	def do_ATTR(self, instr, **kwargs):
+		cond, tables, values = self._dispatch(instr[1], **kwargs)
+		attrname = instr[2]
 
-		elif isinstance(val, Object):
-			if (isinstance(operator, tentacles.queryset.InOp) or isinstance(operator, tentacles.queryset.NotinOp)) and pos == 'right':
-				mylist = getattr(val, self.attrs[0])
-				field  = mylist.__owner__.__fields__[mylist.__name__]
-				sibling = field.sibling
-				print mylist, field, field.__stor_name__, field.__pk_stor_names__, field.name, field.sibling
-				q = "(SELECT %s FROM %s WHERE %s = ?)" % (field.__pk_stor_names__[sibling.__owner__.__pk__[0]], field.__stor_name__, field.__pk_stor_names__[mylist.__owner__.__pk__[0]])
-				tables = []
-				args   = [getattr(val, val.__pk__[0].name)]
-				
-			else:
-				q      = '?'
-				tables = []
+		if cond == SUBQUERY:
+			cond = attrname
+		elif isinstance(cond, table.Object):
+			assert attrname in cond.__fields__
+			cond = ObjAttr(cond, attrname)
+		elif isinstance(cond, table.MetaObject):
+			# if attribute is a ReferenceSet, we definitively need a join
+			# => reported in the caller function (IN, EQ)
+			#if isinstance(cond.__fields__[attrname], fields.ReferenceSet):
 
-				if len(self.attrs) > 0:
-					if self.attrs[0] not in val.__fields__:
-						raise Exception("object %s has no %s attribute" % (val, self.attrs[0]))
-
-					val    = getattr(val, self.attrs[0])
-					if isinstance(val, Object):
-						val = val.id
-					args   = [val]
-				else:
-					args   = [val.id] # should be dynamic
-		elif hasattr(val, '__iter__'):
-			q      = '(' + ','.join('?' for item in val) + ')'
-			args   = list(val)
-			tables = []
+			cond = MetaObjAttr(cond, attrname)
 		else:
-			q      = '?'
-			args   = [val]
-			tables = []
+			cond = "%s.%s" % (cond, attrname)
 
-#		print "q=", q, self, val
-		return set(tables), q, args
+		return cond, tables, values
 
+	def do_AT(self, instr, **kwargs):
+		"""
 
-class Value(object):
-	def buildQ(self, locals, globals, *args, **kwargs):
-		return [], '?', [self.val]
-		
-class ListValue(object):
-	def buildQ(self, locals, globals, *args, **kwargs):
-		print self.val
-		return [], "(%s)" % ','.join(['?' for x in self.val]), self.val
+			instr[2] MUST be a const
+		"""
+		cond, tables, values = self._dispatch(instr[1], **kwargs)
+		return '?', tables, [values[instr[2][1]]]
 
+	def do_VAR(self, instr, **kwargs):
+		if instr[2] == namespaces.GLOBAL:
+			value = kwargs['globals'][instr[1]]
+		elif instr[2] == namespaces.LOCAL:
+			value = kwargs['locals'][instr[1]]
+		elif instr[2] == namespaces.DEREF:
+			value = kwargs['derefs'][instr[1]]
+		else:
+			raise Exception('unknown value %s namespace' % instr[1])
+
+		values = []
+		if isinstance(value, list) or isinstance(value, tuple):
+			for item in value:
+				if isinstance(item, table.Object):
+					values.append(str(getattr(item, item.__pk__[0].name)))
+				else:
+					values.append(str(item))
+
+			value = "(%s)" % (', '.join(['?' for x in values]))
+		elif not isinstance(value, table.MetaObject) and not isinstance(value, table.Object):
+			values.append(value)
+			value  = '?'
+
+		return value, set(), values
+
+	def do_CONST(self, instr, **kwargs):
+		value = instr[1]
+		Q     = '?'
+		if isinstance(value, bool):
+			value = [1 if value else 0]
+		elif isinstance(value, tuple):
+			Q = "(%s)" % ','.join(['?' for v in value])
+	
+		else:
+			value = [value]
+
+		return Q, set(), value
+
+	def do_LIST(self, instr, **kwargs):
+		Q = []
+		tables = set()
+		values = []
+		for subinstr in instr[1]:
+			_Q, _tables, _values = self._dispatch(subinstr, **kwargs)
+			Q.append(str(_Q))
+
+		return ', '.join(Q), tables, values
+
+	"""
+		map transform a resultset (object fields) into another resultset:
+			- single item
+			- tuple/list
+			- dictionary
+	"""
+
+	def mapargs(self, expr, target):
+		"""
+			expr is a lambda expression, returning fields we want to retrieve
+		"""
+		assert len(expr[3]) == 1 # 1st and only arg is qset target
+		_locals  = {expr[3][0][0]: target}
+		_globals = dict([(name, getattr(sys.modules['__main__'], name)) for name in	expr[6]])
+
+		expr = expr[2][0][1]
+		Q, fmt = self.map_dispatch(expr, globals=_globals,	locals=_locals,
+				target=target, action='map')
+
+		return str(Q), fmt
+
+	def map_dispatch(self, expr, **kwargs):
+		callback, kwargs['extra'] = self.OPS.get(expr[0], (expr[0].upper().replace(' ', ''), None))
+
+		return getattr(self, '%s_%s' % (kwargs['action'], callback))(expr, **kwargs) 
+
+	def map_VAR(self, expr, **kwargs):
+		"""
+
+			(VAR, 'u', LOCAL)
+		"""
+		if expr[2] == namespaces.GLOBAL:
+			val = kwargs['globals'][expr[1]]
+		elif expr[2] == namespaces.LOCAL:
+			val = kwargs['locals'][expr[1]]
+		else:
+			raise Exception('unknown value %s namespace' % expr[1])
+
+		return val
+
+	def map_ATTR(self, expr, **kwargs):
+		"""
+
+			(ATTR, (VAR, 'u', LOCAL), 'name')
+		"""
+		attrname = expr[2]
+		val = self.map_dispatch(expr[1], **kwargs)
+		val = "%s.%s" % (val.__stor_name__, attrname)
+
+		return val, 'single'
+
+	def map_LIST(self, expr, **kwargs):
+		return ', '.join([self.map_dispatch(s, **kwargs)[0] for s in expr[1]]), 'list'
+
+	def map_DICT(self, expr, **kwargs):
+		Q = []
+		for item in expr[1]:
+			assert item[0][0] == sqlcodes.CONST
+			_Q, trash = self.map_dispatch(item[1], **kwargs)
+			Q.append("%s AS %s" % (str(_Q), item[0][1]))
+
+		return ', '.join(Q), 'dict'
+	
 
 class Function(object):
 	def buildQ(self, locals, globals, operator, *args, **kwargs):

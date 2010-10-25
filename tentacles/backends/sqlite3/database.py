@@ -43,7 +43,11 @@ class SQLiteStorage(object):
 		return self.cursor.lastrowid
 
 	def query(self, query, args=()):
-		self.cursor.execute(query, args)
+		try:
+			self.cursor.execute(query, args)
+		except Exception, e:
+			print "Query=", query, args
+			print e
 		return self.cursor.fetchall()
 
 	def create(self):

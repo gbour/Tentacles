@@ -28,10 +28,12 @@ from tentacles          import fields as fieldsmod
 from tentacles.lazy     import Ghost
 from tentacles.fields   import Field, Reference, ReferenceSet
 from tentacles.values   import RefList, m2m_RefList
+from tentacles.queryset import ReduceQuerySet
 
+#TODO: MetaObject should inherit from BaseQuerySet. Must check possible side effects?
 class MetaObject(type):
 	def __new__(cls, name, bases, dct):
-#		print "MetaObject::", name
+		print "MetaObject::", name
 		fields = odict()
 		pk     = []
 
@@ -89,13 +91,21 @@ class MetaObject(type):
 		
 		return klass
 
-	def __iter__(self):
-		from tentacles import QuerySet
-		return QuerySet(self).__iter__()
+#	def __iter__(self):
+#		from tentacles import QuerySet
+#		return QuerySet(self).__iter__()
 		
 	def __getitem__(self, key):
-		from tentacles import QuerySet
-		return QuerySet(self).__getitem__(key)
+		from queryset import SliceQuerySet
+		#return QuerySet(self).__getitem__(key)
+		return SliceQuerySet(self, key)
+
+	### QuerySet operations ###
+	def __xlen__(self):
+		"""
+			NOTE: MUST return an integer (or python raise TypeError exception)
+		"""
+		return ReduceQuerySet(self, 'len').get()
 
 
 class Object(object):
@@ -267,7 +277,7 @@ class Object(object):
 
 		self.__changes__.clear()
 		self.__dict__['__changed__'] = False
-		
+	
 	def __getattr__(self, name):
 		"""Apply only to attributes no found in object __dict__
 		"""
@@ -292,4 +302,3 @@ class Object(object):
 	def __repr__(self):
 		return '%s(%s=%s)' % \
 			(self.__class__.__name__, self.__pk__[0].name, getattr(self, self.__pk__[0].name))
-
