@@ -207,7 +207,9 @@ class Object(object):
 		"""
 		# check field value
 		if not key in self.__fields__:
-			raise Exception('Unknown field %s' % key)
+			# not a managed field
+			self.__dict__[key] = value; return
+			#raise Exception('Unknown field %s' % key)
 
 		#TODO: does not set if values are same
 		if self.__values__[key] == value:
