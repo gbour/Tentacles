@@ -100,6 +100,8 @@ class BaseQuerySet(object):
 			Q += ' FROM ' + ','.join([self.tablesolve(table) for table in tables])
 		if condition is not None:
 			Q += ' WHERE %s' % condition
+			# not sure we must add it anytime
+			#Q += ' GROUP BY %s' % datasource.__pk__[0].name
 
 		# ORDER
 		if len(qtree[4]) > 0:
@@ -112,7 +114,8 @@ class BaseQuerySet(object):
 
 			if stop is not None:
 				Q += ' LIMIT %d OFFSET %d' % (stop-start+1, start)
-				
+
+		#print Q, values, fmt
 		return Q, values, fmt
 
 	def tablesolve(self, table):
@@ -160,6 +163,7 @@ class BaseQuerySet(object):
 		#TODO: right == None values =>  "is NULL"
 		return "%s %s %s" % (left, kwargs['extra'], right), tables, values
 
+
 	def do_COMPARISON(self, instr, **kwargs):
 		left , tables , values  = self._dispatch(instr[1], **kwargs)
 		right, rtables, rvalues = self._dispatch(instr[2], **kwargs)
@@ -169,11 +173,46 @@ class BaseQuerySet(object):
 
 		if isinstance(left, MetaObjAttr):
 			tables.add(left.obj)
+
+			if isinstance(left.obj.__fields__[left.attrname], fields.ReferenceSet):
+				assert kwargs['extra'] in ('=', '!=')
+
+				rel = left.obj.__fields__[left.attrname]
+
+				left = "%s.%s" % (
+					left.obj.__stor_name__,
+					left.obj.__pk__[0].name
+				)
+
+				if kwargs['extra'] == '!=':
+					left += ' NOT'
+
+				left += " IN (SELECT %s FROM %s AS sup WHERE %s IN (%s) GROUP BY %s HAVING COUNT(*) = %d AND COUNT(*) = (SELECT COUNT(*) FROM %s AS sub WHERE sub.%s = sup.%s))" % (
+				rel.__pk_stor_names__[rel.__owner__.__pk__[0]],
+				rel.__stor_name__,
+				rel.__pk_stor_names__[rel.sibling.__owner__.__pk__[0]],
+				','.join(['?' for v in rvalues]),
+				rel.__pk_stor_names__[rel.__owner__.__pk__[0]],
+				len(rvalues),
+				rel.__stor_name__,
+				rel.__pk_stor_names__[rel.__owner__.__pk__[0]],
+				rel.__pk_stor_names__[rel.__owner__.__pk__[0]],
+			)
+
+			return left, tables, values
+
 		if isinstance(right, MetaObjAttr):
-			tables.add(right.obj)
+				tables.add(right.obj)
 
 		return "%s %s %s" % (left, kwargs['extra'], right), tables, values
 			
+	def do_NOT(self, instr, **kwargs):
+		#print 'NOT'
+		kwargs['negative'] = True
+		target, tables, values = self._dispatch(instr[1], **kwargs)
+		del kwargs['negative']
+		return target, tables, values
+
 
 	def do_IN(self, instr, **kwargs):
 		left , tables , values  = self._dispatch(instr[1], **kwargs)
@@ -325,6 +364,101 @@ class BaseQuerySet(object):
 
 		return ', '.join(Q), tables, values
 
+	def do_CALL(self, instr, **kwargs):
+		#print 'CALL', instr[1]
+		"""
+			NOTE: we assert instr[1] is an attribute (called function name)
+
+			we reject unhandled methods
+			left part must be an Object ReferenceSet (many2many relation)
+
+			Currently supported methods:
+				- isdisjoint      (empty sets intersection)
+				- not isdisjoint  (non empty sets intersection)
+
+		"""
+		assert instr[1][0] == sqlcodes.ATTR
+
+		fnc = instr[1][2]
+		if fnc not in ('isdisjoint', 'issuperset', 'issubset'):
+			raise Exception('Unhandled *%s* method' % instr[1][2])
+
+		left , tables, values = self._dispatch(instr[1][1], **kwargs)
+		right, rtables, rvalues = self._dispatch(instr[2][0], **kwargs)
+
+		if not isinstance(left, MetaObjAttr) or\
+			not isinstance(left.obj.__fields__[left.attrname], fields.ReferenceSet):
+			raise Exception('')
+
+		tables.add(left.obj)
+		assert isinstance(rvalues, list)
+
+		rel = left.obj.__fields__[left.attrname]
+		# need a join
+
+		if fnc == 'isdisjoint':
+#			tables.add(rel)
+#			kwargs['groupby'] =	left.obj.__pk__[0].name
+
+			left = "%s.%s" % (
+				left.obj.__stor_name__,
+				left.obj.__pk__[0].name)
+
+			if kwargs.get('negative', False) is False:
+				left += ' NOT'
+
+			left += " IN (SELECT DISTINCT %s FROM %s WHERE %s IN (%s))" % (
+				rel.__pk_stor_names__[rel.__owner__.__pk__[0]],
+				rel.__stor_name__,
+				rel.__pk_stor_names__[rel.sibling.__owner__.__pk__[0]],
+				','.join(['?' for v in rvalues]),
+			)
+
+#			left = "%s.%s = %s.%s AND %s.%s" % (
+#				left.obj.__stor_name__,
+#				left.obj.__pk__[0].name,
+#				rel.__stor_name__,
+#				rel.__pk_stor_names__[rel.__owner__.__pk__[0]],
+#				rel.__stor_name__,
+#				rel.__pk_stor_names__[rel.sibling.__owner__.__pk__[0]]
+#			)
+#
+#
+#			if kwargs.get('negative', False) is False:
+#				left += ' NOT'
+#			left += ' IN (%s)' % ','.join(['?' for v in rvalues])
+
+		elif fnc == 'issuperset':
+			left = "%s.%s IN (SELECT %s FROM %s WHERE %s IN (%s) GROUP BY %s HAVING COUNT(*) >= %d)" % (
+				left.obj.__stor_name__,
+				left.obj.__pk__[0].name,
+				rel.__pk_stor_names__[rel.__owner__.__pk__[0]],
+				rel.__stor_name__,
+				rel.__pk_stor_names__[rel.sibling.__owner__.__pk__[0]],
+				','.join(['?' for v in rvalues]),
+				rel.__pk_stor_names__[rel.__owner__.__pk__[0]],
+				len(rvalues)
+			)
+
+		elif fnc == 'issubset':
+			left = "%s.%s IN (SELECT %s FROM %s AS sup WHERE %s IN (%s) GROUP BY %s HAVING COUNT(*) > 0 AND COUNT(*) <= %d AND COUNT(*) = (SELECT COUNT(*) FROM %s AS sub WHERE sub.%s = sup.%s))" % (
+				left.obj.__stor_name__,
+				left.obj.__pk__[0].name,
+				rel.__pk_stor_names__[rel.__owner__.__pk__[0]],
+				rel.__stor_name__,
+				rel.__pk_stor_names__[rel.sibling.__owner__.__pk__[0]],
+				','.join(['?' for v in rvalues]),
+				rel.__pk_stor_names__[rel.__owner__.__pk__[0]],
+				len(rvalues),
+				rel.__stor_name__,
+				rel.__pk_stor_names__[rel.__owner__.__pk__[0]],
+				rel.__pk_stor_names__[rel.__owner__.__pk__[0]],
+			)
+
+		#print left
+		return left, tables, rvalues
+
+
 	"""
 		map transform a resultset (object fields) into another resultset:
 			- single item
@@ -389,6 +523,7 @@ class BaseQuerySet(object):
 		return ', '.join(Q), 'dict'
 	
 
+## OUTDATED ##
 class Function(object):
 	def buildQ(self, locals, globals, operator, *args, **kwargs):
 		print "function:: buildQ=", self.name, ':', self.args

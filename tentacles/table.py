@@ -33,13 +33,13 @@ from tentacles.queryset import ReduceQuerySet
 #TODO: MetaObject should inherit from BaseQuerySet. Must check possible side effects?
 class MetaObject(type):
 	def __new__(cls, name, bases, dct):
-		print "MetaObject::", name
+		#print "MetaObject::", name, dct
 		fields = odict()
 		pk     = []
 
 		if not '__stor_name__' in dct:
 			dct['__stor_name__'] = name.lower()
-		
+
 		for fname, fld in dct.items():
 			if isinstance(fld, Field):
 				fld.name = fname
