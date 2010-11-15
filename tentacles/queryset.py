@@ -200,6 +200,7 @@ class FilterQuerySet(BaseQuerySet):
 		super(FilterQuerySet, self).__init__(target)
 
 		self.conditions = Parser().walk(conditions)
+		print self.conditions
 
 		# for now, we only allow lambda expressions
 		assert(self.conditions[0] == sqlcodes.FUNC and self.conditions[1] == '<lambda>')
