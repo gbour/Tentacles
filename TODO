@@ -1,0 +1,57 @@
+
+
+SQLITE backend
+	. capacity to update schema (diff between db schema and object description)
+	. build object description from DB schema
+
+OBJECTS
+  . allow to automatically prefix storage objects stored name
+		i.e:
+			Storage.set_prefix('myapp')
+
+			Link(Object) -> myapp__link
+											myapp__rel__link_tag
+
+	. reentrant reference
+  . could use user-defined fields
+		here is the error when trying:
+			MetaObject:: User {'username': String(None), '__module__': 'mother.authentication', 'firstname': String(None), 'lastname': String(None), 'creation': Datetime(None), 'last_login':
+			Datetime(None), 'active': Boolean(None), '__stor_name__': 'mother__authuser', 'password': Password(None), 'email': Email(None), 'icon': Image(None)}
+			'module' object has no attribute 'Password'
+
+	. multi-fields primary key
+	. add constraints and search indexes:
+		class Foo(Object):
+			... fields ...
+
+			class Constraints:
+				key1 = Unique(field1, field2)
+		
+			class Indexes:
+				idx1 = Index(field3, field4)
+
+FIELDS/BACKENDS
+	. manage reserved words
+		i.e *group* is reserved by sqlite. Naming a field *group* make *CREATE TABLE* query fail
+		We should either i) warn the user or ii) autorename the field (i.e _name)
+
+	. allow to specified field storage name different from python object field
+
+ADVANCED QUERIES:
+  . map boolean field:
+    when mapping a boolean field, it is not converted (stay integer instead of boolean)
+
+SET QUERIES:
+  . allow short form/non python-valid expressions ?
+
+	filter(lambda g: g.members in (x,y,z), Group)
+		IS EQUIVALENT
+	filter(lambda g: not g.members.issubset([x,y,z]), Group)
+
+
+	filter(lambda g: g.members.name in (x,y,z), Group)
+		IS EQUIVALENT
+	filter(lambda g: g.members.issubset(
+		filter(lambda u: u.name in (x,y,z), User)
+	), Group)
+
