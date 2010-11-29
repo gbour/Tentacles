@@ -188,18 +188,18 @@ class BaseQuerySet(object):
 					left += ' NOT'
 
 				left += " IN (SELECT %s FROM %s AS sup WHERE %s IN (%s) GROUP BY %s HAVING COUNT(*) = %d AND COUNT(*) = (SELECT COUNT(*) FROM %s AS sub WHERE sub.%s = sup.%s))" % (
-				rel.__pk_stor_names__[rel.__owner__.__pk__[0]],
-				rel.__stor_name__,
-				rel.__pk_stor_names__[rel.sibling.__owner__.__pk__[0]],
-				','.join(['?' for v in rvalues]),
-				rel.__pk_stor_names__[rel.__owner__.__pk__[0]],
-				len(rvalues),
-				rel.__stor_name__,
-				rel.__pk_stor_names__[rel.__owner__.__pk__[0]],
-				rel.__pk_stor_names__[rel.__owner__.__pk__[0]],
-			)
+					rel.__pk_stor_names__[rel.__owner__.__pk__[0]],
+					rel.__stor_name__,
+					rel.__pk_stor_names__[rel.sibling.__owner__.__pk__[0]],
+					','.join(['?' for v in rvalues]),
+					rel.__pk_stor_names__[rel.__owner__.__pk__[0]],
+					len(rvalues),
+					rel.__stor_name__,
+					rel.__pk_stor_names__[rel.__owner__.__pk__[0]],
+					rel.__pk_stor_names__[rel.__owner__.__pk__[0]],
+				)
 
-			return left, tables, values
+				return left, tables, values
 
 		if isinstance(right, MetaObjAttr):
 				tables.add(right.obj)
@@ -273,7 +273,7 @@ class BaseQuerySet(object):
 		elif isinstance(right, MetaObjAttr):
 			# we accept only object
 			# later, we will accept PK raw value (integer, string, list of values)
-			assert isinstance(left, table.Object)
+			assert isinstance(left, table.Object), "left is %s/%s" % (type(left), left)
 			rel = right.obj.__fields__[right.attrname]
 
 			tables.add(right.obj)
@@ -360,6 +360,7 @@ class BaseQuerySet(object):
 		values = []
 		for subinstr in instr[1]:
 			_Q, _tables, _values = self._dispatch(subinstr, **kwargs)
+			#print 'L>', _Q, _values
 			Q.append(str(_Q))
 
 		return ', '.join(Q), tables, values
@@ -385,16 +386,21 @@ class BaseQuerySet(object):
 
 		left , tables, values = self._dispatch(instr[1][1], **kwargs)
 		right, rtables, rvalues = self._dispatch(instr[2][0], **kwargs)
+		#print '!', right, rtables, rvalues, type(right)
 
 		if not isinstance(left, MetaObjAttr) or\
 			not isinstance(left.obj.__fields__[left.attrname], fields.ReferenceSet):
-			raise Exception('')
+			raise Exception(left)
 
 		tables.add(left.obj)
+
+		# right part may be list of objects, or Object.ReferenceSet
+		if isinstance(right, ObjAttr):
+			rvalues = [getattr(o, 'id') for o in getattr(right.obj, right.attrname)]
 		assert isinstance(rvalues, list)
 
 		rel = left.obj.__fields__[left.attrname]
-		# need a join
+		tablrel = rel.sibling if rel.reverse else rel
 
 		if fnc == 'isdisjoint':
 #			tables.add(rel)
@@ -408,25 +414,11 @@ class BaseQuerySet(object):
 				left += ' NOT'
 
 			left += " IN (SELECT DISTINCT %s FROM %s WHERE %s IN (%s))" % (
-				rel.__pk_stor_names__[rel.__owner__.__pk__[0]],
+				tablrel.__pk_stor_names__[rel.__owner__.__pk__[0]],
 				rel.__stor_name__,
-				rel.__pk_stor_names__[rel.sibling.__owner__.__pk__[0]],
-				','.join(['?' for v in rvalues]),
+				tablrel.__pk_stor_names__[rel.sibling.__owner__.__pk__[0]],
+				','.join(['?' for v in rvalues])
 			)
-
-#			left = "%s.%s = %s.%s AND %s.%s" % (
-#				left.obj.__stor_name__,
-#				left.obj.__pk__[0].name,
-#				rel.__stor_name__,
-#				rel.__pk_stor_names__[rel.__owner__.__pk__[0]],
-#				rel.__stor_name__,
-#				rel.__pk_stor_names__[rel.sibling.__owner__.__pk__[0]]
-#			)
-#
-#
-#			if kwargs.get('negative', False) is False:
-#				left += ' NOT'
-#			left += ' IN (%s)' % ','.join(['?' for v in rvalues])
 
 		elif fnc == 'issuperset':
 			left = "%s.%s IN (SELECT %s FROM %s WHERE %s IN (%s) GROUP BY %s HAVING COUNT(*) >= %d)" % (
@@ -526,7 +518,7 @@ class BaseQuerySet(object):
 ## OUTDATED ##
 class Function(object):
 	def buildQ(self, locals, globals, operator, *args, **kwargs):
-		print "function:: buildQ=", self.name, ':', self.args
+		#print "function:: buildQ=", self.name, ':', self.args
 		
 		if self.name == "re.match" or True:
 			# LIKE
@@ -540,7 +532,7 @@ class Function(object):
 			like = self.args[0].val
 			like = like.replace(".*", "%")
 			like = like.replace(".", "_")
-			print "like=", like
+			#print "like=", like
 			
 			tables , q, values  = self.args[1].buildQ(locals, globals, operator)
 			values.append(like)
