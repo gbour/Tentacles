@@ -115,7 +115,7 @@ class BaseQuerySet(object):
 			if stop is not None:
 				Q += ' LIMIT %d OFFSET %d' % (stop-start+1, start)
 
-		#print Q, values, fmt
+		print Q, values, fmt
 		return Q, values, fmt
 
 	def tablesolve(self, table):
@@ -207,7 +207,6 @@ class BaseQuerySet(object):
 		return "%s %s %s" % (left, kwargs['extra'], right), tables, values
 			
 	def do_NOT(self, instr, **kwargs):
-		#print 'NOT'
 		kwargs['negative'] = True
 		target, tables, values = self._dispatch(instr[1], **kwargs)
 		del kwargs['negative']
@@ -366,7 +365,6 @@ class BaseQuerySet(object):
 		return ', '.join(Q), tables, values
 
 	def do_CALL(self, instr, **kwargs):
-		#print 'CALL', instr[1]
 		"""
 			NOTE: we assert instr[1] is an attribute (called function name)
 
@@ -386,7 +384,6 @@ class BaseQuerySet(object):
 
 		left , tables, values = self._dispatch(instr[1][1], **kwargs)
 		right, rtables, rvalues = self._dispatch(instr[2][0], **kwargs)
-		#print '!', right, rtables, rvalues, type(right)
 
 		if not isinstance(left, MetaObjAttr) or\
 			not isinstance(left.obj.__fields__[left.attrname], fields.ReferenceSet):
@@ -447,7 +444,6 @@ class BaseQuerySet(object):
 				rel.__pk_stor_names__[rel.__owner__.__pk__[0]],
 			)
 
-		#print left
 		return left, tables, rvalues
 
 
@@ -518,7 +514,6 @@ class BaseQuerySet(object):
 ## OUTDATED ##
 class Function(object):
 	def buildQ(self, locals, globals, operator, *args, **kwargs):
-		#print "function:: buildQ=", self.name, ':', self.args
 		
 		if self.name == "re.match" or True:
 			# LIKE
@@ -532,7 +527,6 @@ class Function(object):
 			like = self.args[0].val
 			like = like.replace(".*", "%")
 			like = like.replace(".", "_")
-			#print "like=", like
 			
 			tables , q, values  = self.args[1].buildQ(locals, globals, operator)
 			values.append(like)

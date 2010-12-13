@@ -37,9 +37,8 @@ class Field(object):
 		modname = "tentacles.backends.%s.fields" % database.uri.scheme
 		exec "import %s" % modname
 		backend = getattr(sys.modules[modname], self.__class__.__name__)
-#		print "  backend=", backend
+
 		for name, obj in inspect.getmembers(backend):
-#			print "    .",name
 			if hasattr(self, name):
 				continue
 
@@ -183,15 +182,15 @@ x			peer      : peer Reference field
 
 class ReferenceSet(Reference):
 	def __init__(self, *args, **kwargs):
-#		"""
-#			A ReferenceSet is defined for an Object with following arguments:
-#				. linked-to objet (called remote)
+		"""
+			A ReferenceSet is defined for an Object with following arguments:
+				. linked-to objet (called remote)
 
-#			When the Object itself (field owner) is defined (MetaClass called),
-#			following extra fields are setted:
-#				. __owner__ : field class owner
-#				. __name__  : field name
-#		"""
+			When the Object itself (field owner) is defined (MetaClass called),
+			following extra fields are setted:
+				. __owner__ : field class owner
+				. __name__  : field name
+		"""
 		super(ReferenceSet, self).__init__(*args, **kwargs)
 
 		self.__hidden__ = True

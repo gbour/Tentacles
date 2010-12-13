@@ -207,5 +207,3 @@ class m2m_RefList(RefList):
 		del self.__added__[:]
 		del self.__removed__[:]
 
-
-

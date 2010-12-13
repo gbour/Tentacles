@@ -31,6 +31,7 @@ from tentacles import py2sql, sqlcodes
 from tentacles import Storage as Stor
 from tentacles.lazy     import Ghost
 
+
 class BaseQuerySet(Inherit):
 	def __init__(self, target):
 		if not isinstance(target, BaseQuerySet):
