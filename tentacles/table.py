@@ -286,7 +286,10 @@ class Object(object):
 		value = self.__values__[name]
 
 		if isinstance(value, Ghost):
-			value = value.load()[0]
+			dbres = value.load()
+			if len(dbres) == 0:
+				raise Exception("NotFound")
+			value = dbres[0]
 			self.__setattr__(name, value, propchange=False)
 
 			#TODO: update peer ReferenceSet when Reference
