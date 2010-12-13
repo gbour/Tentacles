@@ -30,10 +30,10 @@ from tentacles.fields   import Field, Reference, ReferenceSet
 from tentacles.values   import RefList, m2m_RefList
 from tentacles.queryset import ReduceQuerySet
 
+
 #TODO: MetaObject should inherit from BaseQuerySet. Must check possible side effects?
 class MetaObject(type):
 	def __new__(cls, name, bases, dct):
-		#print "MetaObject::", name, dct
 		fields = odict()
 		pk     = []
 
@@ -229,17 +229,14 @@ class Object(object):
 					# then we just clear and fill field with our values
 					# (checking value is iterable and items are of the correct type)
 					if not isinstance(value, RefList):
-						print 'plop', key, value, type(value), getattr(self, key), self.__fields__[key]
 						newvalue = self.__fields__[key].default()
 						newvalue.__owner__  = self
 						newvalue.__name__   = key
 						newvalue.__target__ = fld.remote # tuple Object, fieldname						
 						
 						for item in value:
-							print item
 							newvalue.append(item)
 						value = newvalue
-						print value
 					else:
 						value.__owner__  = self
 						value.__name__   = key
@@ -251,7 +248,6 @@ class Object(object):
 				oldref = getattr(self, key)
 				if oldref:
 					refset = getattr(oldref, fld.remote[1])
-					print "self=", self, oldref, refset, type(refset)
 					# if we delete from peer, self is no more in refset
 					if self in refset:
 						refset.__remove__(self)
@@ -307,3 +303,4 @@ class Object(object):
 	def __repr__(self):
 		return '%s(%s=%s)' % \
 			(self.__class__.__name__, self.__pk__[0].name, getattr(self, self.__pk__[0].name))
+

@@ -42,7 +42,6 @@ class Storage(object):
 
 	def __init__(self, uri):
 		self.uri = Uri(uri)
-#		print self.uri.__dict__
 
 		modname = "tentacles.backends.%s" % self.uri.scheme
 		if not sys.modules.has_key(modname):
@@ -52,10 +51,7 @@ class Storage(object):
 		if not hasattr(sys.modules[modname], 'Storage'):
 			raise Exception("Unknown '%s' storage backend" % self.uri.scheme)
 
-#		print modname, sys.modules.keys()
-#		print dir(sys.modules[modname]), sys.modules[modname].Storage
 		backend = getattr(sys.modules[modname], 'Storage')
-#		print inspect.getmembers(backend)
 		for name, obj in inspect.getmembers(backend):
 			if name.startswith('__') or hasattr(self, name):
 				continue
@@ -67,10 +63,8 @@ class Storage(object):
 		self.__class__.__instance__ = self
 
 		# call backend init method
-#		print "banckend=", modname, backend
 		types.MethodType(backend.__init__.im_func, self)(self.uri)
 		
-#		print '>>', self.__inheritables__, self.__inheritems__
 		for klass in self.__inheritables__:
 			klass.__inherit__(self)
 		for klass in self.__inheritems__:
@@ -94,7 +88,6 @@ class Storage(object):
 
 			Objects register once themselves at definition time (metaclass.__init__)
 		"""
-#		print "register", obj
 		if cls.__context__:
 		    cls.__context__(obj)
 		cls.__objects__.append(obj)
@@ -107,7 +100,6 @@ class Storage(object):
 	def inherit(cls, klass):
 		"""Inherit an object instance
 		"""
-#		print cls, dir(cls), cls.__instance__, klass, type(klass)
 		if cls.__instance__:
 			return klass.__inherit__(cls.__instance__)
 			
@@ -121,7 +113,4 @@ class Storage(object):
 			return klass.__metaclass__.__inherit__(cls.__instance__)
 			
 		cls.__inheritems__.append(klass)
-	
-
-
 
