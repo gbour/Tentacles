@@ -55,3 +55,24 @@ SET QUERIES:
 		filter(lambda u: u.name in (x,y,z), User)
 	), Group)
 
+
+
+BUGS:
+  . 
+		#TODO: bug tentacles. does not handle previous links deletion
+		link.tags = list(filter(lambda t: t.id in tags, Tag))
+
+  . Tag.id = '1' should raise error or been autocasted (comparisons fail after)
+
+	. link = filter(lambda x: x.id == int(kwargs['id']), Link)
+		fail on int(xx) cast op
+
+  . not working: filter(lambda t: t.name in kwargs['tags'], Tag)
+
+	. RefList.extend:
+
+		#link.tags.extend([Tag(name=t) for t in content['tags'] if t not in [tag.name for tag in link.tags]])
+		for name in kwargs['newtags']:
+			link.tags.append(Tag(name=name))
+
+
