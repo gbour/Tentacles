@@ -93,6 +93,9 @@ class Field(object):
 					
 		return match
 
+	def cast(self, value):
+		raise NotImplementedError
+
 	def __str__(self):
 		q = "%s(%s)" % (self.__class__.__name__, self.name)
 		if self.__hidden__:
@@ -120,13 +123,40 @@ class Integer(Field):
 			raise Exception('only pk can be autoincremented')
 		self.autoincrement = autoincrement
 
+	def cast(self, value):
+		if isinstance(value, int):
+			return value
+
+		if isinstance(value, (float, bool, str, unicode)):
+			return int(value)
+
+		raise ValueError
+
 
 class String(Field):
 	basetype = (str, unicode)
 
+	def cast(self, value):
+		if isinstance(value, str):
+			return value.decode('utf-8', 'replace')
+
+		return unicode(value, errors='replace')
 
 class Boolean(Field):
 	basetype = bool
+
+	def cast(self, value):
+		if isinstance(value, bool):
+			return value
+		elif isinstance(value, int):
+			return bool(int)
+		elif isinstance(value, (str, unicode)):
+			if value.lower() in ('1', 't', 'true', 'yes'):
+				return True
+			elif value.lower() in ('0', 'f', 'false', 'no'):
+				return False
+
+		raise ValueError
 
 
 class Binary(Field):
@@ -144,6 +174,11 @@ class Datetime(Field):
 
 		return self.__default__
 
+	"""
+	cast:
+		int = timestamp
+		str = parsing
+	"""
 
 class Reference(Field):
 	def __init__(self, remote, name=None, sibling=None, reverse=False, **kwargs):
