@@ -35,7 +35,10 @@ class SQLiteStorage(object):
 		self.cursor = self.db.cursor()
 
 	def execute(self, query, args=()):
-		res = self.cursor.execute(query, args)
+		try:
+			res = self.cursor.execute(query, args)
+		except Exception, e:
+			print e, ':', query, args
 		#TODO: better handling of autocommit option
 		self.db.commit()
 
