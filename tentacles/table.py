@@ -219,7 +219,9 @@ class Object(object):
 #			self.__origin__[key] = getattr(self, key)
 
 		fld = self.__fields__[key]
-		fld.check(value)	# raise exception if failed
+		# raise exception if failed
+		if not fld.check(value):
+			raise TypeError("%s.%s type is %s" % (self.__class__.__name__, key,	self.__fields__[key]))
 
 		# ,normally, ReferenceSet field are set for once at all
 		if propchange:
@@ -304,3 +306,7 @@ class Object(object):
 		return '%s(%s=%s)' % \
 			(self.__class__.__name__, self.__pk__[0].name, getattr(self, self.__pk__[0].name))
 
+	def fieldesc(self, name):
+		"""Return Field associated with name
+		"""
+		return self.__fields__[name]
