@@ -196,7 +196,8 @@ class Object(object):
 							value = fld.remote[0].__cache__[value]
 						else:
 							value = Ghost(obj, fld, fld.remote[0], {fld.remote[0].__pk__[0].name: value})
-					
+				
+				value = obj.fieldesc(name).cast(value)
 				obj.__setattr__(name, value, propchange=False)
 				if fld.pk:
 					obj.__origin__[name] = item[name]

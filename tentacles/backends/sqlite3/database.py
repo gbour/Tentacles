@@ -35,6 +35,7 @@ class SQLiteStorage(object):
 		self.cursor = self.db.cursor()
 
 	def execute(self, query, args=()):
+		print query, args
 		try:
 			res = self.cursor.execute(query, args)
 		except Exception, e:
