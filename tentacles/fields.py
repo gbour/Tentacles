@@ -79,7 +79,7 @@ class Field(object):
 			self.unique    = kwargs['unique']
 
 	def check(self, value):
-		if self.basetype is None:
+		if self.basetype is None or (value is None and self.none):
 			return True
 
 		# is iterable
@@ -130,14 +130,19 @@ class Integer(Field):
 		if isinstance(value, (float, bool, str, unicode)):
 			return int(value)
 
-		raise ValueError
+		if value is None:
+			return value
+	
+		raise ValueError('integer + ', value)
 
 
 class String(Field):
 	basetype = (str, unicode)
 
 	def cast(self, value):
-		if isinstance(value, str):
+		if isinstance(value, (types.NoneType, unicode)):
+			return value
+		elif isinstance(value, str):
 			return value.decode('utf-8', 'replace')
 
 		return unicode(value, errors='replace')
@@ -146,7 +151,8 @@ class Boolean(Field):
 	basetype = bool
 
 	def cast(self, value):
-		if isinstance(value, bool):
+		#TODO: accept none only if allowed
+		if isinstance(value, (types.NoneType, bool)):
 			return value
 		elif isinstance(value, int):
 			return bool(int)
@@ -156,11 +162,19 @@ class Boolean(Field):
 			elif value.lower() in ('0', 'f', 'false', 'no'):
 				return False
 
-		raise ValueError
+		raise ValueError('bool ' + value)
 
 
 class Binary(Field):
-	pass
+	#pass
+	def cast(self, value):
+		#TODO: temp only
+		return value
+
+	def check(self, value):
+		#TODO: temp only
+		return True
+
 
 
 class Datetime(Field):
@@ -173,6 +187,14 @@ class Datetime(Field):
 			return datetime.now()
 
 		return self.__default__
+
+	def cast(self, value):
+		#TODO: temp only
+		return value
+
+	def check(self, value):
+		#TODO: temp only
+		return True
 
 	"""
 	cast:
@@ -213,6 +235,14 @@ x			peer      : peer Reference field
 
 	def default(self, *args):
 		return None
+
+	def cast(self, value):
+		#TODO: temp only
+		return value
+
+	def check(self, value):
+		#TODO: temp only
+		return True
 
 
 class ReferenceSet(Reference):
