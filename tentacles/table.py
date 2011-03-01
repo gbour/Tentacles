@@ -271,6 +271,8 @@ class Object(object):
 		if propchange:
 			self.__dict__['__changed__'] = True
 
+		return True
+
 	def __reset__(self):
 		"""Reset changes
 		"""
