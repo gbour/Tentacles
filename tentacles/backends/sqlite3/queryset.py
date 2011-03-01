@@ -331,7 +331,8 @@ class BaseQuerySet(object):
 				if isinstance(item, table.Object):
 					values.append(str(getattr(item, item.__pk__[0].name)))
 				else:
-					values.append(str(item))
+					#TODO: we should cast from field type
+					values.append(unicode(item))
 
 			value = "(%s)" % (', '.join(['?' for x in values]))
 		elif not isinstance(value, table.MetaObject) and not isinstance(value, table.Object):
