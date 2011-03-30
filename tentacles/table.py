@@ -101,12 +101,12 @@ class MetaObject(type):
 		return SliceQuerySet(self, key)
 
 	### QuerySet operations ###
-	def __xlen__(self):
+	#TODO: any side effects ?
+	def __len__(self):
 		"""
 			NOTE: MUST return an integer (or python raise TypeError exception)
 		"""
 		return ReduceQuerySet(self, 'len').get()
-
 
 class Object(object):
 	__metaclass__   = MetaObject
@@ -286,9 +286,16 @@ class Object(object):
 		value = self.__values__[name]
 
 		if isinstance(value, Ghost):
+			print 'value=', value
 			dbres = value.load()
+			print 'dbres=',dbres
 			if len(dbres) == 0:
-				raise Exception("NotFound")
+				#TODO: see what is the impact
+				#      particularly, ReferenceSet field may return empty
+				#      list, not None
+
+				#raise Exception("NotFound")
+				return None
 			value = dbres[0]
 			self.__setattr__(name, value, propchange=False)
 
