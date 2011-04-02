@@ -1,12 +1,11 @@
 # -*- coding: utf8 -*-
 """
-    tentacle, python ORM
-    Copyright (C) 2010	Guillaume Bour <guillaume@bour.cc>
+    tentacles, python ORM
+    Copyright (C) 2010-2011, Guillaume Bour <guillaume@bour.cc>
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
-    the Free Software Foundation, either version 3 of the License, or
-    (at your option) any later version.
+    the Free Software Foundation, version 3.
 
     This program is distributed in the hope that it will be useful,
     but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -21,10 +20,11 @@ __version__ = "$Revision$"
 __date__    = "$Date$"
 
 import sys, sqlite3
-from tentacles import Storage as Stor
+
+from reblok          import namespaces
 import tentacles
-from tentacles import sqlcodes, table, fields
-from reblok import namespaces
+from tentacles       import Storage as Stor
+from tentacles       import sqlcodes, table, fields
 from tentacles.table import MetaObject
 
 SUBQUERY = 1
@@ -35,6 +35,7 @@ class MetaObjAttr(object):
 
 	def __str__(self):
 		return "%s.%s" % (self.obj.__stor_name__, self.attrname)
+
 
 class ObjAttr(object):
 	def __init__(self, obj, attrname):
@@ -115,7 +116,6 @@ class BaseQuerySet(object):
 			if stop is not None:
 				Q += ' LIMIT %d OFFSET %d' % (stop-start+1, start)
 
-		print Q, values, fmt
 		return Q, values, fmt
 
 	def tablesolve(self, table):
@@ -212,7 +212,6 @@ class BaseQuerySet(object):
 		del kwargs['negative']
 		return target, tables, values
 
-
 	def do_IN(self, instr, **kwargs):
 		left , tables , values  = self._dispatch(instr[1], **kwargs)
 		right, rtables, rvalues = self._dispatch(instr[2], **kwargs)
@@ -283,7 +282,6 @@ class BaseQuerySet(object):
 				rel.__stor_name__,
 				rel.__pk_stor_names__[rel.sibling.__owner__.__pk__[0]]
 			)
-
 
 		return "%s %s %s" % (left, kwargs['extra'], right), tables, values
 

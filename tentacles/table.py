@@ -1,12 +1,11 @@
 # -*- coding: utf8 -*-
 """
-    tentacle, python ORM
-    Copyright (C) 2010	Guillaume Bour <guillaume@bour.cc>
+    tentacles, python ORM
+    Copyright (C) 2010-2011, Guillaume Bour <guillaume@bour.cc>
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
-    the Free Software Foundation, either version 3 of the License, or
-    (at your option) any later version.
+    the Free Software Foundation, version 3.
 
     This program is distributed in the hope that it will be useful,
     but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -107,6 +106,7 @@ class MetaObject(type):
 			NOTE: MUST return an integer (or python raise TypeError exception)
 		"""
 		return ReduceQuerySet(self, 'len').get()
+
 
 class Object(object):
 	__metaclass__   = MetaObject
