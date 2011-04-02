@@ -1,12 +1,11 @@
 # -*- coding: utf8 -*-
 """
-    tentacle, python ORM
-    Copyright (C) 2010	Guillaume Bour <guillaume@bour.cc>
+    tentaclen, python ORM
+    Copyright (C) 2010-2011, Guillaume Bour <guillaume@bour.cc>
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
-    the Free Software Foundation, either version 3 of the License, or
-    (at your option) any later version.
+    the Free Software Foundation, version 3.
 
     This program is distributed in the hope that it will be useful,
     but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -127,6 +126,7 @@ class BaseQuerySet(Inherit):
 		"""
 		return ReduceQuerySet(self, 'len').get()
 
+
 class RootQuerySet(BaseQuerySet):
 	def __init__(self, target):
 		self.target = target
@@ -145,7 +145,8 @@ class RootQuerySet(BaseQuerySet):
 				6. limit
 		"""
 		return [sqlcodes.SELECT, None, self.target, None, [], None]
-		
+
+
 class OrderQuerySet(BaseQuerySet):
 	def __init__(self, target, order, fields):
 		super(OrderQuerySet, self).__init__(target)
@@ -159,6 +160,7 @@ class OrderQuerySet(BaseQuerySet):
 			target[4].append((fld, self.order))
 
 		return target
+
 
 class SliceQuerySet(BaseQuerySet):
 	def __init__(self, target, slice):
@@ -174,6 +176,7 @@ class SliceQuerySet(BaseQuerySet):
 			target = [sqlcodes.SELECT, None, target, None, [], self.slice]
 
 		return target
+
 
 class FilterQuerySet(BaseQuerySet):
 	def __init__(self, target, conditions=None):
@@ -201,7 +204,6 @@ class FilterQuerySet(BaseQuerySet):
 		super(FilterQuerySet, self).__init__(target)
 
 		self.conditions = Parser().walk(conditions)
-		print self.conditions
 
 		# for now, we only allow lambda expressions
 		assert(self.conditions[0] == sqlcodes.FUNC and self.conditions[1] == '<lambda>')
@@ -225,6 +227,7 @@ class FilterQuerySet(BaseQuerySet):
 
 		return target
 
+
 class ReduceQuerySet(BaseQuerySet):
 	def __init__(self, target, op):
 		super(ReduceQuerySet, self).__init__(target)
@@ -247,6 +250,7 @@ class ReduceQuerySet(BaseQuerySet):
 		target[1] = 'len'
 		
 		return target
+
 
 class MapQuerySet(BaseQuerySet):
 	def __init__(self, target, fields):
@@ -278,6 +282,7 @@ class MapQuerySet(BaseQuerySet):
 
 		return rset
 
+
 orig_filter = filter
 def filter(fnc, target):
 	from tentacles.table import MetaObject
@@ -285,6 +290,7 @@ def filter(fnc, target):
 		return FilterQuerySet(target, fnc)
 
 	return orig_filter(fnc, target)
+
 
 orig_map = map
 def map(fnc, target):
@@ -294,6 +300,7 @@ def map(fnc, target):
 
 	return orig_map(fnc, target)
 
+
 orig_len = len
 def len(obj):
 	from tentacles.table import MetaObject
@@ -301,30 +308,4 @@ def len(obj):
 		return obj.__xlen__()
 
 	return orig_len(obj)
-
-#def reduce():
-#	pass
-#
-
-
-#class Function(Opcode):
-#	def __init__(self, name, args):
-#		self.name   = name
-#		self.args   = args
-#		self.kwargs = {}
-#
-#	def setAttribute(self, attr):
-#		self.attrs.append(attr)
-#		
-#	def addKWArg(self, key, value):
-#		self.kwargs[key] = value
-#		
-#	def __str__(self):
-#		s = "%s(" % self.name
-#		for arg in self.args:
-#			s += str(arg) + ","
-#		for k, v in self.kwargs.iteritems():
-#			s += "%s=%s," % (k, v)
-#		s += ")"
-#		return s
 
