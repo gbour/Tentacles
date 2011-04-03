@@ -17,7 +17,7 @@ or
 
 	wget [http://devedge.bour.cc/resources/tentacles/src/tentacles.latest.tar.gz](http://devedge.bour.cc/resources/tentacles/src/tentacles.latest.tar.gz)
 	tar xvf tentacles.latest.tar.gz
-	cd tentacles && ./setup.py install
+	cd tentacles-* && ./setup.py install
 
 
 Python native datas manipulation vs tentacles
