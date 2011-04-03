@@ -36,7 +36,8 @@ python **native**
 
 ... vs **tentacles**
 
-	from tentacles import Object, fields
+	from tentacles import Object
+	from fields    import *
 	class SuperHero(Object):
 		name   = String()
 		gender = String()
@@ -49,14 +50,17 @@ python **native**
 python **native**
 
 	heros   = [hero1, SuperHero(name='wonder woman', gender='female', power='enhanced vision')]
-	females = filter(lambda e: e.gender = 'female', heros)
+	females = filter(lambda e: e.gender == 'female', heros)
 	for e in females:
 		print "superheroine: %s" % e.name
 
 ... vs **tentacles**
 
-	heros   = [hero1, SuperHero(name='wonder woman', gender='female', power='enhanced vision')]
-	females = filter(lambda e: e.gender = 'female', heros)
+	hero1.save()
+	SuperHero(name='wonder woman', gender='female', power='enhanced vision').save()
+
+	from tentacles import filter
+	females = filter(lambda e: e.gender == 'female', SuperHero)
 	for e in females:
 		print "superheroine: %s" % e.name
 
@@ -199,4 +203,5 @@ It currently support only sqlite3 backend, while more are scheduled at mid-term 
 About
 -----
 
-*Tentacles* is written by Guillaume Bour <guillaume@bour.cc>
+*Tentacles* is licensed under GNU GPL v3.
+It is written by Guillaume Bour <guillaume@bour.cc>

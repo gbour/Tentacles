@@ -52,7 +52,8 @@ setup(
 	... vs ...
 
 	tentacles
-	>>> from tentacles import Object, fields
+	>>> from tentacles        import Object
+	>>> from tentacles.fields import *
 	>>> class SuperHero(Object):
 	>>>		name   = String()
 	>>> 	gender = String()
@@ -71,7 +72,7 @@ setup(
 	... vs ...
 
 	tentacles
-	>>> heros   = [hero1, SuperHero(name='wonder woman', gender='female', power='enhanced vision')]
+	>>> hero1.save(); SuperHero(name='wonder woman', gender='female', power='enhanced vision').save()
 	>>> females = filter(lambda e: e.gender = 'female', heros)
 	>>> for e in females:
 	>>> 	print "superheroine: %s" % e.name
