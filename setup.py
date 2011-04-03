@@ -1,7 +1,22 @@
 #!/usr/bin/env python
-
+# -*- coding: utf8 -*-
 __version__ = "$Revision$ $Date$"
+__author__  = "Guillaume Bour <guillaume@bour.cc>"
+__license__ = """
+	Copyright (C) 2010-2011, Guillaume Bour <guillaume@bour.cc>
 
+	This program is free software: you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation, version 3.
+
+	This program is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
+
+	You should have received a copy of the GNU General Public License
+	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+"""
 from distutils.core import setup
 
 setup(
@@ -11,7 +26,7 @@ setup(
 	author       = 'Guillaume Bour',
 	author_email = 'guillaume@bour.cc',
 	url          = 'http://devedge.bour.cc/wiki/Tentacles',
-	license      = 'GNU Affero General Public License v3',
+	license      = 'GNU General Public License v3',
 	classifiers  = [
 		'Development Status :: 3 - Alpha',
 		'Environment :: Console',
