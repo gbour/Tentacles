@@ -97,7 +97,7 @@ setup(
 	""",
 
 
-	packages=['tentacles', 'tentacles.backends.sqlite3'],
+	packages=['tentacles', 'tentacles.backends', 'tentacles.backends.sqlite3'],
 	data_files=[('share/doc/python-tentacles', ('README.md','AUTHORS','COPYING'))],
 	requires=['odict', 'reblok'],
 )
