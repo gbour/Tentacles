@@ -22,7 +22,7 @@ from distutils.core import setup
 setup(
 	name         = 'tentacles',
 	version      = '0.1.0',
-	description  = 'Object-Relational Model (ORM)',
+	description  = 'Object-Relational Mapping (ORM)',
 	author       = 'Guillaume Bour',
 	author_email = 'guillaume@bour.cc',
 	url          = 'http://devedge.bour.cc/wiki/Tentacles',

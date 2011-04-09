@@ -1,7 +1,7 @@
 Tentacles
 =========
 
-Tentacles is a Object-Relational Model (ORM) written in Python.
+Tentacles is a Object-Relational Mapping (ORM) written in Python.
 It's main concept is to manipulate stored datas as you do for python data structures.
 
 ###Requirements
