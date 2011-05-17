@@ -22,12 +22,29 @@ __date__    = "$Date$"
 import sys, re, inspect, types
 
 
-class Uri(object):
+class URI(object):
+	"""
+		Parse database URI, and extract composantes as object fields
+	"""
 	def __init__(self, raw):
-		m = re.match('^(?P<scheme>\w+):(//((?P<username>[\w]+):(?P<password>[\w]+)@)?(?P<host>[\w.]+)(?P<port>\d+)?/)?(?P<db>[\w:/.]+)', raw, re.U|re.L)
+		m = re.match(r"""^(?P<scheme>\w+):
+			(//
+				(
+					(?P<username>\w+):(?P<password>\w+)
+				@)?
+				(?P<host>[\w.-]+)
+				(:(?P<port>\d+))?
+			/)?
+			(?P<db>[\w:/._-]+)$""", raw, re.U|re.L|re.X)
+
+		if m is None:
+			raise Exception("Invalid URI")
 
 		for k, v in m.groupdict().iteritems():
 			setattr(self, k, v)
+
+		if hasattr(self, 'port') and self.port is not None:
+			self.port = int(self.port)
 
 
 class Storage(object):
@@ -40,7 +57,7 @@ class Storage(object):
 	__inheritems__   = []
 
 	def __init__(self, uri):
-		self.uri = Uri(uri)
+		self.uri = URI(uri)
 
 		modname = "tentacles.backends.%s" % self.uri.scheme
 		if not sys.modules.has_key(modname):
