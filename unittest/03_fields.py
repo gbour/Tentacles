@@ -203,12 +203,35 @@ class Test_fields(unittest.TestCase):
 		# cast:: not implemented yet
 		# check:: not implemented yet
 
-"""
-r = Reference(i, 'zz')
-print 'r=', r
+	def test10_reference(self):
+		class FakeObject(object):
+			pass
 
-r2 = ReferenceSet(s, 'tt')
-print 'r2=', r2
-"""
+		r1 = Reference(FakeObject)
+		self.assertEqual(r1.remote, (FakeObject, None))
+		self.assertEqual(r1.sibling, None)
+		self.assertEqual(r1.reverse, False)
+
+		self.assertEqual(r1.default(), None)
+
+		r1 = Reference(FakeObject, 'remote')
+		self.assertEqual(r1.remote, (FakeObject, 'remote'))
+
+	def test11_referenceset(self):
+		class FakeObject(object):
+			pass
+
+		r1 = ReferenceSet(FakeObject)
+		self.assertEqual(r1.remote, (FakeObject, None))
+		self.assertEqual(r1.sibling, None)
+		self.assertEqual(r1.reverse, False)
+
+		self.assertTrue(isinstance(r1.default(), o2m_RefList))
+
+		r1 = ReferenceSet(FakeObject, 'remote', sibling=ReferenceSet(FakeObject))
+		self.assertEqual(r1.remote, (FakeObject, 'remote'))
+		self.assertTrue(isinstance(r1.default(), m2m_RefList))
+
+
 if __name__ == '__main__':
 	unittest.main()
