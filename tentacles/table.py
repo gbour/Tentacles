@@ -223,7 +223,7 @@ class Object(object):
 		if not fld.check(value):
 			raise TypeError("%s.%s type is %s" % (self.__class__.__name__, key,	self.__fields__[key]))
 
-		# ,normally, ReferenceSet field are set for once at all
+		# normally, ReferenceSet field are set for once at all
 		if propchange:
 			if isinstance(fld, ReferenceSet):
 					#TODO: must write it in a different way;

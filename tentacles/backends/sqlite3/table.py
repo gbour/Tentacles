@@ -151,7 +151,14 @@ class Object(object):
 
 		for refdef in self.__refs__:
 			refval = getattr(self, refdef.name)
-			refval.clear()
+			# in the many part of the relation, refval is a RefList
+			# but in the one part, it is directly the target object
+			from tentacles.values import RefList
+			if isinstance(refval, RefList):
+				refval.clear()
+			else:
+				getattr(refval, self.__fields__[refdef.name].remote[1]).remove(self)
+ 
 			refval.save()
 
 		values = [self.__values__[self.__pk__[0].name]]

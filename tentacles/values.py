@@ -23,11 +23,16 @@ from tentacles          import Storage
 
 
 class RefList(object):
-	def __init__(self):
-#		self.__owner__    = owner
-#		self.__name__     = name
-#		self.__target__   = target                 # (object instance, fieldname) tuple
+	"""List of references with tracking-changes memory
 
+		internal fields:
+		* __owner__    = owner
+		* __target__   = values allowed in the RefList. *(ObjectClass, fieldname)* tuple
+										 (also used to propagate changes)
+#		self.__name__     = name
+	"""
+
+	def __init__(self):
 		self.__items__    = []
 
 		# tracking changes
@@ -35,6 +40,10 @@ class RefList(object):
 		self.__removed__  = []
 
 	def __append__(self, value):
+		"""Add *value* to the RefList
+	
+			NOTE: we cannot add twice the same value (return *False* if object already in list)
+		"""
 		if value in self.__items__:
 			return False
 
@@ -43,6 +52,7 @@ class RefList(object):
 			self.__removed__.remove(value)
 		else:
 			self.__added__.append(value)
+			#TODO: we should send a signal instead of directly modifying value
 			self.__owner__.__dict__['__changed__'] = True
 
 		return True
@@ -53,6 +63,7 @@ class RefList(object):
 			self.__added__.remove(value)
 		else:
 			self.__removed__.append(value)
+			#TODO: send signal
 			self.__owner__.__dict__['__changed__'] = True
 
 	def __delitem__(self, i):
@@ -63,6 +74,7 @@ class RefList(object):
 			self.__added__.remove(value)
 		else:
 			self.__removed__.append(value)
+			#TODO: send signal
 			self.__owner__.__dict__['__changed__'] = True
 
 		return value
@@ -143,6 +155,14 @@ class o2m_RefList(RefList):
 
 
 class m2m_RefList(RefList):
+	"""many2many reference list
+
+		User										Group
+			. memberof	  * - *			. members
+
+		a User is _memberof_ many groups
+		a Group as many _members_
+	"""
 	def __init__(self, reverse=False, sibling=None):
 		super(m2m_RefList, self).__init__()
 
@@ -150,13 +170,16 @@ class m2m_RefList(RefList):
 		self.sibling = sibling
 
 	def append(self, value):
+		"""Append object to the reflist
+		"""
 		if self.__append__(value):
 			# propagate
 			getattr(value, self.__target__[1]).__append__(self.__owner__)
 
 	def remove(self, value):
+		"""Remove object from reflist
+		"""
 		self.__remove__(value)
-
 		getattr(value, self.__target__[1]).__remove__(self.__owner__)
 
 	def __delitem__(self, i):
@@ -179,6 +202,8 @@ class m2m_RefList(RefList):
 		return False
 		
 	def save(self):
+		"""
+		"""
 		for obj in self.__added__:
 			obj.save()
 
@@ -189,6 +214,7 @@ class m2m_RefList(RefList):
 		if not self.__owner__.saved():
 			return
 
+		#TODO: SQL code MUST be exported in specific backends implementations
 		if not self.reverse:
 			fld = self.__owner__.__fields__[self.__name__]
 			q = "INSERT INTO %s VALUES (?, ?)" % fld.__stor_name__

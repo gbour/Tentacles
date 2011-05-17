@@ -26,7 +26,7 @@ from tentacles import *
 from tentacles.fields import ReferenceSet, Reference
 from tentacles.inheritance import Inherit
 
-from tentacles import py2sql, sqlcodes
+from tentacles import sqlcodes
 from tentacles import Storage as Stor
 from tentacles.lazy     import Ghost
 

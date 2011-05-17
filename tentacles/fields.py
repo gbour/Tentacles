@@ -223,6 +223,28 @@ x			name      : local field name
 x			fieldname : name of peer Reference field
 x			reverse   : contra-peer field
 x			peer      : peer Reference field
+
+			>>>	class User(Object):
+			>>>		pass
+			>>>
+			>>> class Group(Object):
+			>>>		owner = Reference(User)
+
+			definition:
+				Group.owner::Reference()         <- -> User.Group__owner::ReferenceSet()
+			
+			instances:
+				aGroup.owner::User=aUser1				 <- -> aUser1::o2m_RefList=[
+																									aGroup,
+																									aGroup2,
+																									...
+																							 ]
+			owner
+				.remote    = (User, None)
+				.sibling   = False
+				.reverse   = False
+				.__owner__ = Group
+				.name      = 'owner'
 		"""
 		super(Reference, self).__init__(**kwargs)
 
@@ -250,16 +272,43 @@ class ReferenceSet(Reference):
 			A ReferenceSet is defined for an Object with following arguments:
 				. linked-to objet (called remote)
 
+			It represent either a many2many relation between 2 tentacles Objects,
+			or the _`many`_ part or a one2many relation
+
 			When the Object itself (field owner) is defined (MetaClass called),
 			following extra fields are setted:
 				. __owner__ : field class owner
 				. __name__  : field name
+
+			ReferenceSet object is used to define relation between Objects.
+			When manipulating instances, relations are materialized by (o2m|m2m)_RefLists
+			
+			>>> class User(Object)
+			>>>		pass
+			>>>
+			>>> class Group(Object):
+			>>>		members = ReferenceSet(User)
+
+			definition:
+				Group.members::ReferenceSet()         <- -> User.Group__members::ReferenceSet()
+			
+			instances:
+				aGroup.members::m2m_RefList=[
+																			aUser1, <- -> aUser1.Group__members::m2m_RefList=[aGroup]
+																			aUser2        ...
+																		]
 		"""
 		super(ReferenceSet, self).__init__(*args, **kwargs)
 
 		self.__hidden__ = True
 
 	def default(self, *args):
+		"""Default ReferenceSet value is an empty RefList
+
+			Type of RefList depends on relation between objects:
+			* one2many : we get a o2m_RefList()
+			* many2many: we get a m2m_RefList()
+		"""
 		if isinstance(self.sibling, ReferenceSet):
 			val = m2m_RefList(reverse=self.reverse, sibling=self.sibling)
 		else:
