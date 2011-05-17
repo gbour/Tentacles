@@ -58,14 +58,14 @@ class Field(object):
 		self.__order__ = ORDER
 		ORDER += 1
 
-		self.__owner__   = False
-		self.name        = name
-		self.pk          = pk
-		self.none        = allow_none
+		self.__owner__     = False
+		self.name          = name
+		self.pk            = pk
+		self.none          = allow_none
 		if self.pk:
-			self.none = False
-		self.unique      = False
-		self.__hidden__  = False
+			self.none        = False
+		self.unique        = False
+		self.__hidden__    = False
 		self.autoincrement = False
 
 		self.__default__     = None
@@ -73,7 +73,7 @@ class Field(object):
 			# check if default value match basetype
 			self.__default__   = kwargs['default']
 			if not self.check(self.__default__):
-				raise Exception('default value must be one of', self.basetype)
+				raise TypeError('default value must be one of', self.basetype)
 		if 'unique' in kwargs:
 			self.unique    = kwargs['unique']
 
@@ -146,6 +146,7 @@ class String(Field):
 
 		return unicode(value, errors='replace')
 
+
 class Boolean(Field):
 	basetype = bool
 
@@ -154,14 +155,14 @@ class Boolean(Field):
 		if isinstance(value, (types.NoneType, bool)):
 			return value
 		elif isinstance(value, int):
-			return bool(int)
+			return bool(value)
 		elif isinstance(value, (str, unicode)):
 			if value.lower() in ('1', 't', 'true', 'yes'):
 				return True
 			elif value.lower() in ('0', 'f', 'false', 'no'):
 				return False
 
-		raise ValueError('bool ' + value)
+		raise TypeError('bool ' + value)
 
 
 class Binary(Field):
