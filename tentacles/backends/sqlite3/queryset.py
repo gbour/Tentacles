@@ -135,6 +135,8 @@ class BaseQuerySet(object):
 
 		sqlcodes.EQ  : ('COMPARISON', '='),
 		sqlcodes.NEQ : ('COMPARISON', '!='),
+		sqlcodes.ID  : ('COMPARISON', '='),
+		sqlcodes.NID : ('COMPARISON', '!='),
 
 		sqlcodes.LT  : ('BINARYOP', '<'),
 		sqlcodes.GT  : ('BINARYOP', '>'),
