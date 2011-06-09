@@ -149,6 +149,12 @@ class Object(object):
 				fld.__inherit__(database)
 
 	def __init__(self, *args, **kw):
+		"""Create a new instance of *Object*
+
+			* Each positional argument must match declared fields (in the same order).
+			* Positional argument has priority over named argument.
+			* All non-valued fields will be set with default field value.
+		"""
 		# __changes__ track changed fields 
 		#   key   = fieldname (str)
 		#   value = 1st old value after last save
@@ -303,12 +309,17 @@ class Object(object):
 		return value
 
 	def has_changed(self):
+		"""Return **True** if *Object* instance has been modified since last save, **False** otherwise"""
 		return self.__changed__
 
 	def changes(self):
+		"""Return list of changed fields since last save, in a dictionary where key is
+		field name and value the new value to-be-saved
+		"""
 		return self.__changes__
 
 	def saved(self):
+		"""Return **True** if *Object* is saved in storage, **False** else"""
 		return self.__saved__
 
 	def __repr__(self):
@@ -316,6 +327,8 @@ class Object(object):
 			(self.__class__.__name__, self.__pk__[0].name, getattr(self, self.__pk__[0].name))
 
 	def fieldesc(self, name):
-		"""Return Field associated with name
+		"""Return Field descriptor matching name
+
+		Raise a **KeyError** exception if not found.
 		"""
 		return self.__fields__[name]

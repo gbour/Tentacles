@@ -26,6 +26,16 @@ class URI(object):
 	"""
 		Parse database URI, and extract composantes as object fields
 	"""
+	"""Storage *URI* string
+
+		Depends on storage type, but an uri is made of at least two parts:
+			#. storage type, followed by a comma (':').
+			#. storage arguments.
+
+		I.e, using a sqlite3 database, you will set the following uri::
+
+			sqlite:/path/to/sqlite.db
+	"""
 	def __init__(self, raw):
 		m = re.match(r"""^(?P<scheme>\w+):
 			(//
@@ -48,6 +58,8 @@ class URI(object):
 
 
 class Storage(object):
+	"""Storage object
+	"""
 	__instance__  = None
 	__objects__   = []
 	__refs__      = []

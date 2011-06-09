@@ -1,6 +1,7 @@
 
 include AUTHORS
 include COPYING
+include CHANGES
 include README.md
 
 recursive-include examples *.py

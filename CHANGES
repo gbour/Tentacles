@@ -1,0 +1,13 @@
+
+0.1.0 - initial release
+
+  * natural "python language" ORM
+  * sqlite3 backend storage
+  * object definition
+  * o2m and m2m relations
+  * "basic queries" syntax
+
+
+0.1.1 - reblok compatibility
+
+	* compatibility with reblok 0.1.1 (new TUPLE opcode)

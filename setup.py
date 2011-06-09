@@ -21,7 +21,7 @@ from distutils.core import setup
 
 setup(
 	name         = 'tentacles',
-	version      = '0.1.0',
+	version      = '0.1.1',
 	description  = 'Object-Relational Mapping (ORM)',
 	author       = 'Guillaume Bour',
 	author_email = 'guillaume@bour.cc',
@@ -98,6 +98,6 @@ setup(
 
 
 	packages=['tentacles', 'tentacles.backends', 'tentacles.backends.sqlite3'],
-	data_files=[('share/doc/python-tentacles', ('README.md','AUTHORS','COPYING'))],
+	data_files=[('share/doc/python-tentacles', ('README.md','AUTHORS','COPYING','CHANGES'))],
 	requires=['odict', 'reblok'],
 )

@@ -113,16 +113,45 @@ class Field(object):
 
 
 class Integer(Field):
+	"""**Integer** field type.
+
+	Match *int* python base type.
+	"""
+	#: python *Integer* field basetype
 	basetype = int
 
 	def __init__(self, name=None, allow_none=True, pk=False, autoincrement=False, *args, **kwargs):
 		super(Integer, self).__init__(name, allow_none, pk, *args, **kwargs)
+		"""
+
+		* name: field name
+		* allow_none: field can be None
+		* pk: this field is used as *primary key* for the object
+		* autoincrement: field value is autoincremented first time object is saved
+		"""
 
 		if autoincrement and not pk:
 			raise Exception('only pk can be autoincremented')
 		self.autoincrement = autoincrement
 
 	def cast(self, value):
+		"""Cast a python object to field basetype.
+
+		If not compatible, raise a *ValueError* exception
+
+		Examples:
+
+			>>> Integer().cast(1.456)
+			1
+			>>> Integer().cast("42")
+			42
+			>>> Integer().cast(True)
+			1
+			>>> Integer().cast(None)
+			None
+			>>> Integer().cast("fail")
+			ValueError('integer + fail')
+		"""
 		if isinstance(value, int):
 			return value
 
@@ -136,9 +165,19 @@ class Integer(Field):
 
 
 class String(Field):
+	#: python basetypes for *String* field
 	basetype = (str, unicode)
 
 	def cast(self, value):
+		"""Cast python object to *String* matching value
+
+			NOTE: *str* values are consistently converted to *unicode*
+			
+			>>> String().cast('foo')
+			u'foo'
+			>>> String().cast(None)
+			None
+		"""
 		if isinstance(value, (types.NoneType, unicode)):
 			return value
 		elif isinstance(value, str):
@@ -148,9 +187,38 @@ class String(Field):
 
 
 class Boolean(Field):
+	#: python basetype for *Boolean* field
 	basetype = bool
 
 	def cast(self, value):
+		"""Cast python value/object to *Boolean* matching value
+
+			* if value is None, returns None
+			* if value is an int, returns False if value equals 0, True else
+			* if value is a str/unicode, returns True if value equals '1','t','true','yes',
+			False if value equals '0','f','false','no'( case doesn't matter), else raise a
+			ValueError exceptions
+
+			* all other value types raise a ValueError exception
+
+			>>> b = Boolean()
+			>>> b.cast(True)
+			True
+			>>> b.cast(None)
+			None
+			>>> b.cast(1)
+			True
+			>>> b.cast(42)
+			True
+			>>> b.cast(0)
+			False
+			>>> b.cast('true')
+			True
+			>>> b.cast('False')
+			False
+			>>> b.cast('foo')
+			ValueError('bool foo')
+		"""
 		#TODO: accept none only if allowed
 		if isinstance(value, (types.NoneType, bool)):
 			return value
@@ -168,6 +236,10 @@ class Boolean(Field):
 class Binary(Field):
 	#pass
 	def cast(self, value):
+		"""Cast python value/object to *Binary* matching value
+
+			At the moment, all python types/objects are considered matching *Binary* field
+		"""
 		#TODO: temp only
 		return value
 
@@ -178,6 +250,11 @@ class Binary(Field):
 
 class Datetime(Field):
 	def default(self, *args):
+		"""Set default field value
+		
+			if default value was set to *'now'*, we return current datetime
+			else we return default value
+		"""
 		if not hasattr(self, '__default__'):
 			return None
 
@@ -204,25 +281,32 @@ class Datetime(Field):
 class Reference(Field):
 	def __init__(self, remote, name=None, sibling=None, reverse=False, **kwargs):
 		"""
-			A Reference is a many2one relation, defined for an Object with following arguments:
-				. remote (object, the ``one" part of the relation)
-				. name (field name for the *remote* object - optional)
+			A **Reference** is a many2one relation, defined for an *Object* with following arguments:
 
-			When the Object itself (field owner) is defined (MetaClass called),
+			* remote    : Object class, the ``one" part of the relation
+			* name      : field name for the *remote* Object - optional
+			* sibling   : peer Reference/ReferenceSet field (owned by remote object)
+			* reverse   : *False* if this is the reference Field as set by the user,
+			  *True*, if it is the automagically created sibling Reference field
+
+
+			When the *Object* itself (the field owner) is defined (MetaClass called),
 			following extra fields are setted:
-				. __owner__ : field class owner
-				. name      : field name
+	
+			* __owner__ : field class owner
+			* name      : field name
 
+			NOTE: Do a notice about remove object field
 
-			sibling   : peer Reference/ReferenceSet field (owned by remote object)
-			reverse   : false if this is the reference Field as set by the user,
-								  true, if it is the automagically created sibling Reference field
+			>>> class User(Object):
+			>>>		pass
+			>>>
+			>>> class Group(Object):
+			>>>		owner = Reference(User)
+			
 
-x			remote    : remote klass
-x			name      : local field name
-x			fieldname : name of peer Reference field
-x			reverse   : contra-peer field
-x			peer      : peer Reference field
+			>>>
+			>>> g = Group(u)
 
 			>>>	class User(Object):
 			>>>		pass
