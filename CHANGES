@@ -10,4 +10,6 @@
 
 0.1.1 - reblok compatibility
 
-	* compatibility with reblok 0.1.1 (new TUPLE opcode)
+  * compatibility with reblok 0.1.1 (new TUPLE opcode)
+  * add unittests
+

@@ -19,7 +19,9 @@ __author__  = "Guillaume Bour <guillaume@bour.cc>"
 __version__ = "$Revision$"
 __date__    = "$Date$"
 
+VERSION      = 0.1.1
 __DATABASE__ = None
+
 
 from database import Storage
 from table    import Object
